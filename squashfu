@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Informational output w/ happy colors
-DEBUG=true
 debug () {
     [[ $DEBUG ]] && echo -e '\033[1;33mDEBUG ::\033[1;m ' $*
 }
@@ -15,7 +14,7 @@ die () {
     exit 1
 }
 
-CONFIG=/etc/squashfu
+CONFIG=/etc/squashfu.conf
 source $CONFIG
 [[ $? -gt 0 ]] && die "Error in config file. Please check your syntax"
 
@@ -91,15 +90,20 @@ unmount_all () {
         { debug Unmounting squash...; umount "${SEED}"; }
 }
 
-finish_routine () {
+query_usage () {
     # Do another sanity check -- check sizes of bins versus squash.
-    bin_size=$(du -s ${BKUP_ROOT}/bins | awk '{print $1}')
-    sfs_size=$(du -s $SEED | awk '{print $1}')
+    bin_size=$(du -s ${BKUP_ROOT}/bins 2>/dev/null | awk '{print $1}')
+    sfs_size=$(stat -c %s $SEED 2>/dev/null)
+
+    info "Usage report (in mb):\n"
+    printf "%30s %10.2f\n" "Seed size:" "`echo "scale=2;$sfs_size / 1024 / 1024" | bc`"
+    printf "%30s %10.2f\n" "Total incremental size:" "`echo "scale=2;$bin_size / 1024 / 1024" | bc`"
+
     if [[ $bin_size -gt $sfs_size ]]; then
         info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
     fi
 
-    unmount_all
+    #unmount_all
 }
 
 usage () {
@@ -140,7 +144,7 @@ HELP
 }
 
 # The meat and potatoes of the script.
-do-backup () {
+do_backup () {
     ################################
     # Sanity checks
     ################################
@@ -195,8 +199,6 @@ do-backup () {
             rm $SEED
         fi
     }
-
-    finish_routine
 }
 
 #Option parsing / Decision making
@@ -204,7 +206,8 @@ do-backup () {
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        "-B")   do-backup             ;;
+        "-B")   do_backup             ;;
+        "-Q")   query_usage           ;;
         "-c")                         ;;
         "--resquash")                 ;;
         "--check-size")               ;;
