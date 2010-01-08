@@ -21,9 +21,16 @@ Design:
            |-6/   <-- Saturday incremental
            |-7/   <-- Sunday incremental
 
-  seed.sfs is created from an initial backup and compressed using SquashFS. It
-  is then mounted, using a loopback device on ro/. Using aufs2, a union mount is
-  formed by ro/ and each of the numbered bins, each corresponding to a day. 
+  seed.sfs is created from an initial backup and compressed using SquashFS, which i
+  is simply a filesystem which focuses on compression, but is read only. It's mounted,
+  using a loopback device, on ro/. Using aufs2, a union mount is formed by ro/ and each 
+  of the numbered bins, each corresponding to a day.
+
+  Wait, wat? What the heck IS a union mount? In simple terms, a union combines multiple
+  directories (which themselves could also be mount points) into a single resultant
+  mount point. Using our directory structure above as an example, each day (bin) is 
+  overlayed (in order, its important) on the base (seed.sfs) to create what appears 
+  to be an up to date backup in rw/. Skip the rest if you've had enough.
 
   At the time of the backup, the day is determined in order to prepare the union. If
   today is Thursday, `date +%u` returns 4. In order for rsync to properly create our
@@ -40,4 +47,11 @@ Warnings:
   It is imperative that you do NOT touch the individual branches. You can and will
   cause irrepairable damage to the union, rendering your incrementals worthless.
 
+
+Further reading:
+   http://en.wikipedia.org/wiki/Aufs
+   http://en.wikipedia.org/wiki/UnionFS
+   http://aufs.sourceforge.net/
+   http://en.wikipedia.org/wiki/SquashFS
+   http://en.wikipedia.org/wiki/Rsync
 
