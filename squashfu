@@ -10,13 +10,14 @@ info () {
 }
 
 die () {
-    echo -e '\033[1;31mERROR ::\033[1;m ' $*
+    echo -e '\033[1;31mFATAL ::\033[1;m ' $*
     exit 1
 }
 
+# Source default config, and bail on bad syntax
 CONFIG=/etc/squashfu.conf
 source $CONFIG
-[[ $? -gt 0 ]] && die "Error in config file. Please check your syntax"
+[[ $? -gt 0 ]] && die "Syntax error in config file."
 
 create_new_seed () {
     # Create a new squashfs based on the contents of the union
