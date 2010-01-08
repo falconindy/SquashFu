@@ -21,7 +21,7 @@ source $CONFIG
 [[ $? -gt 0 ]] && die "Error in config file. Please check your syntax"
 
 # Informational output w/ happy colors
-mount_aufs_by_num () {
+mount_union_ro () {
     # Check for the union already being mounted
     grep "${BKUP_ROOT}/rw" /proc/mounts && umount "$BKUP_ROOT/rw"
 
@@ -35,7 +35,9 @@ mount_aufs_by_num () {
     # build and execute mount command
     debug "Mounting union as entirely read only"
     mount -t aufs none $BKUP_ROOT/rw -o udba=reval,$branches
+}
 
+mount_union_branch_rw () {
     debug "Remount branch $i as read-write"
     mount -o remount,mod:bins/$1=rw "${BKUP_ROOT}/rw"
 }
@@ -69,7 +71,7 @@ mount_seed () {
 
 mount_aufs_by_day() {
     # convert DoW to a number
-    mount_aufs_by_num `date --date=$1 +%u`
+    mount_union_ro `date --date=$1 +%u`
 }
 
 run_rsync() {
@@ -91,10 +93,10 @@ run_rsync() {
 unmount_all () {
     #Union must be unmounted first, or bad things happen
     debug Unmounting union...
-    read -p "Continue..."
+    #read -p "Continue..."
     umount "${BKUP_ROOT}/rw"
     debug Unmounting squash...
-    read -p "Continue..."
+    #read -p "Continue..."
     umount "$SEED"
 }
 
@@ -109,7 +111,7 @@ unmount_all () {
 # Blindly unmount all just in case
 unmount_all
 
-read -p "Continue..."
+#read -p "Continue..."
 
 # - do we have a proper (expected) directory structure in place?
 # Use cd to BKUP_ROOT to avoid issues with brace expansion in a quoted path
@@ -122,17 +124,18 @@ cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
     create_new_seed;
 }
 
-read -p "Continue..."
+#read -p "Continue..."
 
 #  mount seed if it exists and is not already mounted
 grep "${BKUP_ROOT}/ro" /proc/mounts || mount_seed
 
-read -p "Continue..."
+#read -p "Continue..."
 
 # Prepare union mount with proper bins
-mount_aufs_by_num $(( $(date +%u) + $MODIFIER ))
+mount_union_ro
+mount_union_branch_rw $(( $(date +%u) + $MODIFIER ))
 
-read -p "Continue..."
+#read -p "Continue..."
 
 # Ready for backup!
 run_rsync
@@ -151,13 +154,13 @@ run_rsync
     fi
 }
 
-read -p "Continue..."
+#read -p "Continue..."
 unmount_all
 
 # Do another sanity check -- check sizes of bins versus squash.
 bin_size=$(du -s ${BKUP_ROOT}/bins | awk '{print $1}')
-sfs_size=$(du -s $SEED awk '{print $1}')
-if [[ bin_size -gt sfs_size ]]; then
+sfs_size=$(du -s $SEED | awk '{print $1}')
+if [[ $bin_size -gt $sfs_size ]]; then
     info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
 fi
 
