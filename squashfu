@@ -117,11 +117,13 @@ usage () {
 #  - do we have a proper (expected) directory structure in place?
 #       (Use cd to BKUP_ROOT to avoid issues with brace expansion in a quoted path)
 [[ $UID -eq 0 ]] || die Must be root!
+
 [[ -w "${BKUP_ROOT}" ]] || 
     die "Backup root is not accessible. Please check your setting in /etc/squashfu"
+
 unmount_all
+
 cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
-################################
 
 
 ################################
@@ -133,9 +135,10 @@ cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
     debug "No seed found -- creating a new one...";
     create_new_seed;
 }
+
 mount_union_ro $(( $(date +%u) + $MODIFIER ))
+
 mount_union_branch_rw $(( $(date +%u) + $MODIFIER ))
-################################
 
 
 ################################
@@ -161,5 +164,4 @@ run_rsync
 }
 
 finish_routine
-################################
 
