@@ -103,7 +103,39 @@ finish_routine () {
 }
 
 usage () {
-    info "This is what happens when you can't read"
+    info "SquashFu: a backup solution hewn out of boredom"
+    cat <<HELP
+USAGE
+    squashfu <operation> [options]
+
+OPERATIONS
+  -B
+    Runs a regular backup, using the config file at /etc/squashfu, unless
+    otherwise specified with the -c option.
+
+  -Q
+    Displays the size of the seed, the incrementals, and the actual backup.
+
+  -R <day> [mount]
+    Rollback to the day described by the following argument. 'day' needs to be
+    a day of the week between the last resquash and the current day. An
+    alternate mount point can be specified for the resulting rolled back union.
+    If unspecified, the union will be mounted at $BKUP_ROOT/rw.
+
+OPTIONS
+  --resquash
+    To be used with the -B operation. This forces a new squashed seed to be 
+    created when the backup finishes. The original seed and incrementals are
+    moved to the directory specified in the config file. Ensure that you have
+    sufficient space for this operation, or bad things will happen. You can
+    use the -Q operation to estimate how much free space you will need.
+
+  --resquash-destroy-old
+    Similar to --resquash except the old seed and incrementals are discarded
+    after the new seed is created.
+
+
+HELP
     exit
 }
 
@@ -172,7 +204,10 @@ do-backup () {
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        "-c")    ;;
+        "-B")   do-backup             ;;
+        "-c")                         ;;
+        "--resquash")                 ;;
+        "--check-size")               ;;
         *) usage ;;
     esac
     shift
