@@ -1,0 +1,41 @@
+SquashFu - an alternative backup solution
+  Inspired by http://forums.gentoo.org/viewtopic-p-4732709.html
+
+Requirements: aufs, aufs2-util, squashfs-tools, rsync
+
+Goal: To create a backup solution which provides incremental backups and compression,
+      and which also provides an easy way to roll back.
+
+Design:
+  A directory structure is created as follows:
+      backup_root/
+       |- seed.sfs
+       |- ro/
+       |- rw/
+       |- bins/
+           |-1/   <-- Monday incremental
+           |-2/   <-- Tuesday incremental
+           |-3/   <-- Wednesday incremental
+           |-4/   <-- Thursday incremental
+           |-5/   <-- Friday incremental
+           |-6/   <-- Saturday incremental
+           |-7/   <-- Sunday incremental
+
+  seed.sfs is created from an initial backup and compressed using SquashFS. It
+  is then mounted, using a loopback device on ro/. Using aufs2, a union mount is
+  formed by ro/ and each of the numbered bins, each corresponding to a day. 
+
+  At the time of the backup, the day is determined in order to prepare the union. If
+  today is Thursday, `date +%u` returns 4. In order for rsync to properly create our
+  incremental, we need to compare current data with the seed plus incrementals leading
+  up to Thursday, so we create our Aufs mount with the branches bins/4, bins/3, bins/2,
+  bins/1, and ro/ (in that order). When rsync now writes to the resulting union, aufs
+  happily receives the data into the first available (writable) branch of the union,
+  which is bins/4. The next day, the union mount is reformed adding the next bin...
+
+  If and when you want to roll back, the process is simple. Mount the seed plus
+  the necessary bins to increment the seed up to the day of interest.
+
+
+
+

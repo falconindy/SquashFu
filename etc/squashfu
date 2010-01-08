@@ -1,0 +1,62 @@
+# Config file for Super Deluxe SquashFu Backup Express
+
+# The base directory where backups will go.
+# This is the only directory that absolutely needs to be
+# created by the user. All others will be created as needed
+# by the actual backup (and inside this root).
+BKUP_ROOT="/mnt/Gluttony/squashup"
+
+# Filename for the seed generated. You shouldn't need
+# to change this
+SEED="${BKUP_ROOT}/$HOSTNAME-seed.sfs"
+
+# This is an optional offset for determining what bin is used
+# for a nightly backup. If you run your backups in the early
+# morning for the previous day's work, you'll want to set this
+# to -1. Values other than 0 or -1 will cause bad things to
+# happen.
+# TODO: This can also be overridden with the --modifier option
+# at runtime
+MODIFIER=0
+
+# These are the options that are passed directly to rsync.
+# The -u flag is a necessity, or else incrementals will
+# not be created properly. See 'man rsync' for more info.
+RSYNC_OPTS=("-Rua" "--delete" "--stats")
+
+# This option determines whether the previous week's seed
+# and bins are kept when creating a fresh seed for the next
+# week. If this value is anything besides 1, the seed and bins
+# will be discarded. If you have room for a second seed,
+# keep this enabled until you are sure everything is working
+# correctly.
+KEEP_LAST_WEEK=1
+
+# Set this to the day of the week you want a resquash to occur.
+# Days are numbered according to the output of 'date +%u' -- 1
+# through 7, with 1 being Monday, 7 being Sunday. If this number
+# is out of bounds or this day is missed, you MUST create the
+# new squash manually using --resquash. This is again compared
+# to the output of 'date +%u' but does NOT take into account
+# the MODIFIER above.
+RESQUASH_DAY=7
+
+
+# The following defines what will and won't be backed up. All lines
+# MUST be commented, followed by a + for include, or a - for exclude.
+# All other lines will be ignored (or things will break).
+
+#+/boot
+#+/etc
+#+/home
+#+/root
+#+/usr/share
+#+/var/lib/pacman
+
+#-/boot/lost+found
+#-/home/*/.cache
+#-/home/*/.thumbnails
+#-/home/*/.lyrics
+#-/home/*/.gnome2
+#-/home/*/dev/git/*/.git
+#-/home/lost+found

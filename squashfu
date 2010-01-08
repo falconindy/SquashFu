@@ -1,0 +1,141 @@
+#!/bin/bash
+
+# Declare base options, overwrite with user specs as necessary
+# MAKE SURE TO CHANGE THIS BEFORE PUSHING PUBLIC
+CONFIG=/home/haruko/dev/git/squashfu/etc/squashfu
+source $CONFIG
+if [[ $? -gt 0 ]]; then
+    echo "FATAL: Error in config file. Please check your syntax"
+    exit 1
+fi
+
+# Informational output w/ happy colors
+debug () {
+    echo -e '\033[1;33m??\033[1;m ' $*
+}
+
+die () {
+    echo -e '\033[1;31m!!\033[1;m ' $*
+    exit 1
+}
+mount_aufs_by_num () {
+    # Check for the union already being mounted
+    grep "${BKUP_ROOT}/rw" /proc/mounts >/dev/null && umount "$BKUP_ROOT/rw"
+
+    # build branch string
+    branches="br="
+    for i in `seq $1 -1 1`; do
+        branches="${branches}${BKUP_ROOT}/bins/${i}:"
+    done
+    branches="${branches}${BKUP_ROOT}/ro"
+
+    # build and execute mount command
+    mount -t aufs none $BKUP_ROOT/rw -o udba=reval,$branches
+}
+
+create_new_seed () {
+    # For our very first seed, we're writing directly to disk, so
+    # Delete the data after the squashed seed has been created
+    [[ "$1" == "--initial" ]] && run_rsync
+
+    # Create a new squashfs based on the contents of the union
+    mksquashfs "${BKUP_ROOT}/rw" "$SEED" -b 65536
+
+    # Delete the rsync source since its now squashed
+    [[ "$1" == "--initial" ]] && rm -rf "${BKUP_ROOT}/rw/*"
+}
+
+move_old_tree () {
+    storage="${BKUP_ROOT}/bkup-$(date +%Y-%m-%d)"
+    mkdir "$storage"
+    cd "$BKUP_ROOT" && mv {$SEED,bins/} "$storage"
+}
+
+mount_seed () {
+    debug "Mounting seed"
+    # Mount the squashed seed, failing if we can't
+    mount -o loop,ro "${SEED}" "${BKUP_ROOT}/ro" || {
+        echo FATAL: Error mounting $SEED;
+        exit 1;
+    }
+}
+
+mount_aufs_by_day() {
+    # convert DoW to a number
+    mount_aufs_by_num `date --date=$1 +%u`
+}
+
+run_rsync() {
+    # Gather includes and excludes from config file
+    # No error checking here -- user better not have
+    # effed up the config
+    INCLUDES=($(grep ^#+ $CONFIG | cut -d+ -f2-))
+    EXCLUDES=($(grep ^#- $CONFIG | cut -d- -f2-))
+
+    # rsync source to $BKUP_ROOT/rw
+    echo Rsync executing with:
+    echo    Options: ${RSYNC_OPTS[@]}
+    echo   Includes: ${INCLUDES[@]}
+    echo   Excludes: ${EXCLUDES[@]}
+    rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw || return 1
+}
+
+# Unmount union and squash
+unmount_all () {
+    #Union must be unmounted first, or bad things happen
+    umount "${BKUP_ROOT}/rw"
+    umount "$SEED"
+}
+
+# Sanity checks
+#  - Are we root?
+[[ $UID -eq 0 ]] || { echo "Must be root!"; exit 1; }
+
+#  - is our BKUP_ROOT valid? (FAIL)
+[[ -w "${BKUP_ROOT}" ]] ||
+    { echo "FATAL: Backup root '$BKUP_ROOT' is not a valid location!";
+      echo "Please check the setting in /etc/squashfu"; exit 1; }
+
+# Blindly unmount all just in case
+unmount_all
+
+# - do we have a proper (expected) directory structure in place?
+# Use cd to BKUP_ROOT to avoid issues with brace expansion in a quoted path
+cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
+
+# Prep work
+#  - does seed exist? (if not, our backup is creating the seed)
+[[ -f "$SEED" ]] || { 
+    echo "No seed found -- creating a new one...";
+    create_new_seed "--initial";
+}
+#  mount seed if it exists and is not already mounted
+grep "${BKUP_ROOT}/ro" /proc/mounts >/dev/null || mount_seed
+
+# Prepare union mount with proper bins
+mount_aufs_by_num $(( $(date +%u) + $MODIFIER ))
+
+# Ready for backup!
+run_rsync
+
+# 5) Cleanup 
+#   - Is this resquash day? If so, we need a new squash
+#   - If new squash creation fails, we're in trouble. (by default, keep previous week)
+[[ $(date +%u) -eq $RESQUASH_DAY ]] && {
+    create_new_seed
+    # Set aside last week's tree if user opted to, else delete it all
+    if [[ $KEEP_LAST_WEEK -eq 1 ]]; then
+        move_old_tree
+    else
+        find "${BKUP_ROOT}/bins/" -type f -delete
+        rm $SEED
+    fi
+}
+
+unmount_all
+
+# 6) Optional behavior
+#   --seed-initial      Create new seed
+#   --rollback $1 $2    Rollback to the day specified by $1, mounting at $2
+#   --resquash          Create a new seed
+#
