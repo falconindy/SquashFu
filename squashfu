@@ -18,24 +18,6 @@ CONFIG=/etc/squashfu.conf
 source $CONFIG
 [[ $? -gt 0 ]] && die "Error in config file. Please check your syntax"
 
-mount_union_ro () {
-    # build branch string
-    branches="br="
-    for i in `seq $1 -1 1`; do
-        branches="${branches}${BKUP_ROOT}/bins/${i}=ro:"
-    done
-    branches="${branches}${BKUP_ROOT}/ro=ro"
-
-    # build and execute mount command
-    debug "Mounting union as entirely read only"
-    mount -t aufs none $BKUP_ROOT/rw -o udba=reval,$branches
-}
-
-mount_union_branch_rw () {
-    debug "Remount branch $i as read-write"
-    mount -o remount,mod:bins/$1=rw "${BKUP_ROOT}/rw"
-}
-
 create_new_seed () {
     # Create a new squashfs based on the contents of the union
     # It's okay if we make an empty squash, we'll tell the user
@@ -47,103 +29,7 @@ create_new_seed () {
     #[[ "$1" == "--initial" ]] && rm -rf "${BKUP_ROOT}/rw/*"
 }
 
-move_old_tree () {
-    storage="${BKUP_ROOT}/bkup-$(date +%Y-%m-%d)"
-    mkdir "$storage"
-    cd "$BKUP_ROOT" && mv {$SEED,bins/} "$storage"
-}
-
-mount_seed () {
-    debug "Mounting seed"
-    # Mount the squashed seed, failing if we can't
-    mount -o loop,ro "${SEED}" "${BKUP_ROOT}/ro" || {
-        die FATAL: Error mounting $SEED;
-    }
-}
-
-mount_aufs_by_day() {
-    # convert DoW to a number
-    mount_union_ro `date --date=$1 +%u`
-}
-
-run_rsync() {
-    # Gather includes and excludes from config file
-    # No error checking here -- user better not have
-    # effed up the config
-    INCLUDES=($(grep ^#+ $CONFIG | cut -d+ -f2-))
-    EXCLUDES=($(grep ^#- $CONFIG | cut -d- -f2-))
-
-    # rsync source to $BKUP_ROOT/rw
-    debug "Rsync executing with:"
-    debug "   Options: ${RSYNC_OPTS[@]}"
-    debug "   Includes: ${INCLUDES[@]}"
-    debug "   Excludes: ${EXCLUDES[@]}"
-    rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw || return 1
-}
-
-# Unmount union and squash
-unmount_all () {
-    #Union must be unmounted first, or bad things happen
-    grep "${BKUP_ROOT}/rw" /proc/mounts && 
-        { debug Unmounting union...; umount "$BKUP_ROOT/rw"; }
-    grep "${SEED}" /proc/mounts &&
-        { debug Unmounting squash...; umount "${SEED}"; }
-}
-
-query_usage () {
-    # Do another sanity check -- check sizes of bins versus squash.
-    bin_size=$(du -s ${BKUP_ROOT}/bins 2>/dev/null | awk '{print $1}')
-    sfs_size=$(stat -c %s $SEED 2>/dev/null)
-
-    info "Usage report (in mb):\n"
-    printf "%30s %10.2f\n" "Seed size:" "`echo "scale=2;$sfs_size / 1024 / 1024" | bc`"
-    printf "%30s %10.2f\n" "Total incremental size:" "`echo "scale=2;$bin_size / 1024 / 1024" | bc`"
-
-    if [[ $bin_size -gt $sfs_size ]]; then
-        info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
-    fi
-
-    #unmount_all
-}
-
-usage () {
-    info "SquashFu: a backup solution hewn out of boredom"
-    cat <<HELP
-USAGE
-    squashfu <operation> [options]
-
-OPERATIONS
-  -B
-    Runs a regular backup, using the config file at /etc/squashfu, unless
-    otherwise specified with the -c option.
-
-  -Q
-    Displays the size of the seed, the incrementals, and the actual backup.
-
-  -R <day> [mount]
-    Rollback to the day described by the following argument. 'day' needs to be
-    a day of the week between the last resquash and the current day. An
-    alternate mount point can be specified for the resulting rolled back union.
-    If unspecified, the union will be mounted at $BKUP_ROOT/rw.
-
-OPTIONS
-  --resquash
-    To be used with the -B operation. This forces a new squashed seed to be 
-    created when the backup finishes. The original seed and incrementals are
-    moved to the directory specified in the config file. Ensure that you have
-    sufficient space for this operation, or bad things will happen. You can
-    use the -Q operation to estimate how much free space you will need.
-
-  --resquash-destroy-old
-    Similar to --resquash except the old seed and incrementals are discarded
-    after the new seed is created.
-
-
-HELP
-    exit
-}
-
-# The meat and potatoes of the script.
+# The meat and potatoes of this bad agent.
 do_backup () {
     ################################
     # Sanity checks
@@ -199,6 +85,120 @@ do_backup () {
             rm $SEED
         fi
     }
+}
+
+mount_seed () {
+    debug "Mounting seed"
+    # Mount the squashed seed, failing if we can't
+    mount -o loop,ro "${SEED}" "${BKUP_ROOT}/ro" || {
+        die FATAL: Error mounting $SEED;
+    }
+}
+
+mount_union_ro () {
+    # build branch string
+    branches="br="
+    for i in `seq $1 -1 1`; do
+        branches="${branches}${BKUP_ROOT}/bins/${i}=ro:"
+    done
+    branches="${branches}${BKUP_ROOT}/ro=ro"
+
+    # build and execute mount command
+    debug "Mounting union as entirely read only"
+    mount -t aufs none $BKUP_ROOT/rw -o udba=reval,$branches
+}
+
+mount_union_up_to_day () {
+    # convert DoW to a number
+    mount_union_ro `date --date=$1 +%u`
+}
+
+mount_union_branch_rw () {
+    debug "Remount branch $i as read-write"
+    mount -o remount,mod:bins/$1=rw "${BKUP_ROOT}/rw"
+}
+
+move_old_tree () {
+    storage="${BKUP_ROOT}/bkup-$(date +%Y-%m-%d)"
+    mkdir "$storage"
+    cd "$BKUP_ROOT" && mv {$SEED,bins/} "$storage"
+}
+
+query_usage () {
+    # Do another sanity check -- check sizes of bins versus squash.
+    bin_size=$(du -s ${BKUP_ROOT}/bins 2>/dev/null | awk '{print $1}')
+    sfs_size=$(stat -c %s $SEED 2>/dev/null)
+
+    info "Usage report (in mb):\n"
+    printf "%30s %10.2f\n" "Seed size:" "`echo "scale=2;$sfs_size / 1024 / 1024" | bc`"
+    printf "%30s %10.2f\n" "Total incremental size:" "`echo "scale=2;$bin_size / 1024 / 1024" | bc`"
+
+    if [[ $bin_size -gt $sfs_size ]]; then
+        info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
+    fi
+
+    #unmount_all
+}
+
+run_rsync() {
+    # Gather includes and excludes from config file
+    # No error checking here -- user better not have
+    # effed up the config
+    INCLUDES=($(grep ^#+ $CONFIG | cut -d+ -f2-))
+    EXCLUDES=($(grep ^#- $CONFIG | cut -d- -f2-))
+
+    # rsync source to $BKUP_ROOT/rw
+    debug "Rsync executing with:"
+    debug "   Options: ${RSYNC_OPTS[@]}"
+    debug "   Includes: ${INCLUDES[@]}"
+    debug "   Excludes: ${EXCLUDES[@]}"
+    rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw || return 1
+}
+
+# Unmount union and squash
+unmount_all () {
+    #Union must be unmounted first, or bad things happen
+    grep "${BKUP_ROOT}/rw" /proc/mounts && 
+        { debug Unmounting union...; umount "$BKUP_ROOT/rw"; }
+    grep "${SEED}" /proc/mounts &&
+        { debug Unmounting squash...; umount "${SEED}"; }
+}
+
+usage () {
+    info "SquashFu: a backup solution hewn out of boredom"
+    cat <<HELP
+USAGE
+    squashfu <operation> [options]
+
+OPERATIONS
+  -B
+    Runs a regular backup, using the config file at /etc/squashfu, unless
+    otherwise specified with the -c option.
+
+  -Q
+    Displays the size of the seed, the incrementals, and the actual backup.
+
+  -R <day> [mount]
+    Rollback to the day described by the following argument. 'day' needs to be
+    a day of the week between the last resquash and the current day. An
+    alternate mount point can be specified for the resulting rolled back union.
+    If unspecified, the union will be mounted at $BKUP_ROOT/rw.
+
+OPTIONS
+  --resquash
+    To be used with the -B operation. This forces a new squashed seed to be 
+    created when the backup finishes. The original seed and incrementals are
+    moved to the directory specified in the config file. Ensure that you have
+    sufficient space for this operation, or bad things will happen. You can
+    use the -Q operation to estimate how much free space you will need.
+
+  --resquash-destroy-old
+    Similar to --resquash except the old seed and incrementals are discarded
+    after the new seed is created.
+
+
+HELP
+    exit
 }
 
 #Option parsing / Decision making
