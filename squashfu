@@ -25,9 +25,6 @@ create_new_seed () {
     # about it at the end and suggest --resquash
     debug "Making new squash seed $(basename $SEED)"
     mksquashfs "${BKUP_ROOT}/rw" "$SEED" -b 65536
-
-    # Delete the rsync source since its now squashed
-    #[[ "$1" == "--initial" ]] && rm -rf "${BKUP_ROOT}/rw/*"
 }
 
 # The meat and potatoes of this bad agent.
