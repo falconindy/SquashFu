@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Informational output w/ happy colors
 DEBUG=true
 debug () {
     [[ $DEBUG ]] && echo -e '\033[1;33m??\033[1;m ' $*
@@ -14,17 +15,12 @@ die () {
     exit 1
 }
 
-# Declare base options, overwrite with user specs as necessary
 # MAKE SURE TO CHANGE THIS BEFORE PUSHING PUBLIC
 CONFIG=/home/haruko/dev/git/squashfu/etc/squashfu
 source $CONFIG
 [[ $? -gt 0 ]] && die "Error in config file. Please check your syntax"
 
-# Informational output w/ happy colors
 mount_union_ro () {
-    # Check for the union already being mounted
-    grep "${BKUP_ROOT}/rw" /proc/mounts && umount "$BKUP_ROOT/rw"
-
     # build branch string
     branches="br="
     for i in `seq $1 -1 1`; do
@@ -43,11 +39,9 @@ mount_union_branch_rw () {
 }
 
 create_new_seed () {
-    # For our very first seed, we're writing directly to disk, so
-    # Delete the data after the squashed seed has been created
-    #[[ "$1" == "--initial" ]] && run_rsync
-
     # Create a new squashfs based on the contents of the union
+    # It's okay if we make an empty squash, we'll tell the user
+    # about it at the end and suggest --resquash
     debug "Making new squash seed $(basename $SEED)"
     mksquashfs "${BKUP_ROOT}/rw" "$SEED" -b 65536
 
@@ -92,12 +86,21 @@ run_rsync() {
 # Unmount union and squash
 unmount_all () {
     #Union must be unmounted first, or bad things happen
-    debug Unmounting union...
-    #read -p "Continue..."
-    umount "${BKUP_ROOT}/rw"
-    debug Unmounting squash...
-    #read -p "Continue..."
-    umount "$SEED"
+    grep "${BKUP_ROOT}/rw" /proc/mounts && 
+        { debug Unmounting union...; umount "$BKUP_ROOT/rw"; }
+    grep "${SEED}" /proc/mounts &&
+        { debug Unmounting squash...; umount "${SEED}"; }
+}
+
+finish_routine () {
+    # Do another sanity check -- check sizes of bins versus squash.
+    bin_size=$(du -s ${BKUP_ROOT}/bins | awk '{print $1}')
+    sfs_size=$(du -s $SEED | awk '{print $1}')
+    if [[ $bin_size -gt $sfs_size ]]; then
+        info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
+    fi
+
+    unmount_all
 }
 
 # Sanity checks
@@ -111,8 +114,6 @@ unmount_all () {
 # Blindly unmount all just in case
 unmount_all
 
-#read -p "Continue..."
-
 # - do we have a proper (expected) directory structure in place?
 # Use cd to BKUP_ROOT to avoid issues with brace expansion in a quoted path
 cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
@@ -124,18 +125,12 @@ cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
     create_new_seed;
 }
 
-#read -p "Continue..."
-
 #  mount seed if it exists and is not already mounted
 grep "${BKUP_ROOT}/ro" /proc/mounts || mount_seed
 
-#read -p "Continue..."
-
 # Prepare union mount with proper bins
-mount_union_ro
+mount_union_ro $(( $(date +%u) + $MODIFIER ))
 mount_union_branch_rw $(( $(date +%u) + $MODIFIER ))
-
-#read -p "Continue..."
 
 # Ready for backup!
 run_rsync
@@ -154,18 +149,3 @@ run_rsync
     fi
 }
 
-#read -p "Continue..."
-unmount_all
-
-# Do another sanity check -- check sizes of bins versus squash.
-bin_size=$(du -s ${BKUP_ROOT}/bins | awk '{print $1}')
-sfs_size=$(du -s $SEED | awk '{print $1}')
-if [[ $bin_size -gt $sfs_size ]]; then
-    info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
-fi
-
-# 6) Optional behavior
-#   --seed-initial      Create new seed
-#   --rollback $1 $2    Rollback to the day specified by $1, mounting at $2
-#   --resquash          Create a new seed
-#
