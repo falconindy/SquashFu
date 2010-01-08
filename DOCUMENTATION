@@ -36,6 +36,8 @@ Design:
   If and when you want to roll back, the process is simple. Mount the seed plus
   the necessary bins to increment the seed up to the day of interest.
 
-
+Warnings:
+  It is imperative that you do NOT touch the individual branches. You can and will
+  cause irrepairable damage to the union, rendering your incrementals worthless.
 
 
