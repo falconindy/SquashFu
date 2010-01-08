@@ -103,6 +103,11 @@ finish_routine () {
     unmount_all
 }
 
+usage () {
+    info "This is what happens when you can't read"
+    exit
+}
+
 # Sanity checks
 #  - Are we root?
 [[ $UID -eq 0 ]] || die Must be root!
@@ -111,7 +116,7 @@ finish_routine () {
 [[ -w "${BKUP_ROOT}" ]] || 
     die "Backup root is not accessible. Please check your setting in /etc/squashfu"
 
-# Blindly unmount all just in case
+# Check for pre-existing mounts just in case (and unmount them)
 unmount_all
 
 # - do we have a proper (expected) directory structure in place?
@@ -124,9 +129,6 @@ cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
     debug "No seed found -- creating a new one...";
     create_new_seed;
 }
-
-#  mount seed if it exists and is not already mounted
-grep "${BKUP_ROOT}/ro" /proc/mounts || mount_seed
 
 # Prepare union mount with proper bins
 mount_union_ro $(( $(date +%u) + $MODIFIER ))
