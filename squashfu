@@ -27,7 +27,7 @@ mount_union_ro () {
 
     # build branch string
     branches="br="
-    for i in `seq 7 -1 1`; do
+    for i in `seq $1 -1 1`; do
         branches="${branches}${BKUP_ROOT}/bins/${i}=ro:"
     done
     branches="${branches}${BKUP_ROOT}/ro=ro"
