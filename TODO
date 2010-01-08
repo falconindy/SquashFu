@@ -1,0 +1,15 @@
+- Add sanity check for space remaining on disc.
+    - Use flat % to determine when not to backup?
+    - Only check space when resquashing?
+
+- Implement options
+    --resquash          manual resquash
+    --rollback=<day>    rollback to a day of the week
+    -c <config file>    specify path to different config
+
+- Add logging
+
+- Filter output from commands
+
+- Create help/usage function
+
