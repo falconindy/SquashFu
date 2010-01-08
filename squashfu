@@ -108,38 +108,47 @@ usage () {
     exit
 }
 
+################################
 # Sanity checks
+################################
 #  - Are we root?
-[[ $UID -eq 0 ]] || die Must be root!
-
 #  - is our BKUP_ROOT valid? (FAIL)
+#  - Check for pre-existing mounts just in case (and unmount them)
+#  - do we have a proper (expected) directory structure in place?
+#       (Use cd to BKUP_ROOT to avoid issues with brace expansion in a quoted path)
+[[ $UID -eq 0 ]] || die Must be root!
 [[ -w "${BKUP_ROOT}" ]] || 
     die "Backup root is not accessible. Please check your setting in /etc/squashfu"
-
-# Check for pre-existing mounts just in case (and unmount them)
 unmount_all
-
-# - do we have a proper (expected) directory structure in place?
-# Use cd to BKUP_ROOT to avoid issues with brace expansion in a quoted path
 cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
+################################
 
+
+################################
 # Prep work
+################################
 #  - does seed exist? (if not, our backup is creating the seed)
+#  - Prepare union mount with proper bins
 [[ -f "$SEED" ]] || {
     debug "No seed found -- creating a new one...";
     create_new_seed;
 }
-
-# Prepare union mount with proper bins
 mount_union_ro $(( $(date +%u) + $MODIFIER ))
 mount_union_branch_rw $(( $(date +%u) + $MODIFIER ))
+################################
 
+
+################################
 # Ready for backup!
+################################
 run_rsync
 
-# 5) Cleanup 
-#   - Is this resquash day? If so, we need a new squash
-#   - If new squash creation fails, we're in trouble. (by default, keep previous week)
+
+################################
+# Cleanup 
+################################
+#  - Is this resquash day? If so, we need a new squash
+#  - If new squash creation fails, we're in trouble. (by default, keep previous week)
 [[ $(date +%u) -eq $RESQUASH_DAY ]] && {
     create_new_seed
     # Set aside last week's tree if user opted to, else delete it all
@@ -150,4 +159,7 @@ run_rsync
         rm $SEED
     fi
 }
+
+finish_routine
+################################
 
