@@ -208,6 +208,10 @@ OPERATIONS
     If unspecified, the union will be mounted at $BKUP_ROOT/rw.
 
 OPTIONS
+  -c, --config
+    Specify an alternate location to a config file that will override defaults
+    provided in /etc/squashfu.conf.
+
   --resquash
     To be used with the -B operation. This forces a new squashed seed to be 
     created when the backup finishes. The original seed and incrementals are
@@ -218,10 +222,6 @@ OPTIONS
   --resquash-destroy-old
     Similar to --resquash except the old seed and incrementals are discarded
     after the new seed is created.
-
-  -c, --config
-    Specify an alternate location to a config file that will override defaults
-    provided in /etc/squashfu.conf.
 
 HELP
     exit 0
