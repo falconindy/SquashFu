@@ -207,6 +207,12 @@ OPERATIONS
     alternate mount point can be specified for the resulting rolled back union.
     If unspecified, the union will be mounted at $BKUP_ROOT/rw.
 
+  -Z
+    Use this option to restore sanity, AKA check for the seed or union being
+    mounted and unmount them. Squashfu will ensure that everything is unmounted
+    before a backup, but you might use this after restoring a file after a
+    rollback.
+
 OPTIONS
   -c, --config
     Specify an alternate location to a config file that will override defaults
@@ -286,6 +292,7 @@ while [[ $# -gt 0 ]]; do
         "-B")  shift; dispatch_backup $*             ;;
         "-Q")  shift; dispatch_query $1              ;;
         "-R")  shift; dispatch_rollback $*           ;;
+        "-Z")  unmount_all                           ;;
         *)     usage                                 ;;
     esac
     shift
