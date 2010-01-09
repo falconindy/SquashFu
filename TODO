@@ -10,5 +10,6 @@
 - Add logging
 
 - Filter output from commands
+    -mostly done, mksquashfs is still noisy
 
 - Implement /tmp file for tracking custom mounts used with -R
