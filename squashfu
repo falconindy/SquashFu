@@ -104,18 +104,18 @@ mount_union_ro () {
 
     # build branch string
     branches="br="
-    for i in `seq $1 -1 1`; do
+    for i in $(seq $1 -1 1); do
         branches="${branches}${BKUP_ROOT}/bins/${i}=ro:"
     done
     branches="${branches}${BKUP_ROOT}/ro=ro"
 
     # build and execute mount command
-    debug "Mounting union as entirely read only"
+    debug "Mounting union as entirely read only through branch $1"
     mount -t aufs none "${MOUNT_POINT}" -o udba=reval,$branches
 }
 
 mount_union_branch_rw () {
-    debug "Remount branch $i as read-write"
+    debug "Remount branch $1 as read-write"
     mount -o remount,mod:bins/$1=rw "${BKUP_ROOT}/rw"
 }
 
@@ -194,6 +194,7 @@ unmount_union () {
     # Account for possibility of multiple mounts
     debug "Checking for and unmounting union"
     while [[ $(mountpoint -q "${BKUP_ROOT}/rw") ]]; do
+        debug "Found mount, attempting to unmount..."
         umount "${BKUP_ROOT}/rw"
     done
 }
@@ -260,6 +261,8 @@ dispatch_backup () {
         esac
         shift
     done
+
+    do_backup
 }
 
 dispatch_query () {
@@ -281,7 +284,9 @@ dispatch_rollback () {
     }
 
     # Ensure first rollback arg is a valid day of the week
-    [[ ! $(date --date=$1 >/dev/null 2>&1) ]] && {
+    debug "Attempting to rollback to $1"
+    date --date=$1 >/dev/null 2>&1
+    [[ $? -gt 0 ]] && {
         die "Invalid day of week '$1'";
         usage;
     }
@@ -296,8 +301,12 @@ dispatch_rollback () {
         usage;
     }
 
+    # Don't mount union multiple times
+    unmount_custom
+    unmount_union
+
     # Convert day to numerical day of week and mount
-    mount_union_ro `date --date=$1 +%u` $2
+    mount_union_ro $(date --date=$1 +%u) $2
 }
 
 # Determine operation and send to appropriate dispatcher
