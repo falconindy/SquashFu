@@ -134,9 +134,9 @@ query_usage () {
     bin_size=$(du -s ${BKUP_ROOT}/bins 2>/dev/null | awk '{print $1}')
     sfs_size=$(stat -c %s $SEED 2>/dev/null)
 
-    info "Usage report (in mb):\n"
-    printf "%30s %10.2f\n" "Seed size:" "`echo "scale=2;$sfs_size / 1024 / 1024" | bc`"
-    printf "%30s %10.2f\n" "Total incremental size:" "`echo "scale=2;$bin_size / 1024 / 1024" | bc`"
+    info "Usage report:\n"
+    printf "%30s %10.2f MiB\n" "Seed size:" "`echo "scale=2;$sfs_size / 1024 / 1024" | bc`"
+    printf "%30s %10.2f MiB\n" "Total incremental size:" "`echo "scale=2;$bin_size / 1024 / 1024" | bc`"
 
     if [[ $bin_size -gt $sfs_size ]]; then
         info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
@@ -236,12 +236,6 @@ dispatch_backup () {
     done
 }
 
-dispatch_query () {
-    # Don't check anything, just run the query.
-    # TODO: Add levels of querying
-    query_usage
-}
-
 dispatch_rollback () {
     # Check arguments conform
     [[ $# -eq 0 || $# -gt 2 ]] && {
@@ -273,7 +267,7 @@ dispatch_rollback () {
 while [[ $# -gt 0 ]]; do
     case $1 in
         "-B")  shift; dispatch_backup $*             ;;
-        "-Q")  shift; dispatch_query                 ;;
+        "-Q")  shift; query_usage $*                 ;;
         "-R")  shift; dispatch_rollback $*           ;;
         *)     usage                                 ;;
     esac
