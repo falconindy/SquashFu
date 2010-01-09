@@ -11,5 +11,4 @@
 
 - Filter output from commands
 
-- Create help/usage function
-
+- Implement /tmp file for tracking custom mounts used with -R
