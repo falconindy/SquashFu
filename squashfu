@@ -172,15 +172,15 @@ unmount_all () {
 
 unmount_seed () {
     # Account for possibility of multiple mounts
-    while [[ `grep "${SEED}" /proc/mounts` ]]; do
+    while [[ $(mountpoint "${BKUP_ROOT}/ro") ]]; do
         umount "${SEED}"
     done
 }
 
 unmount_union () {
     # Account for possibility of multiple mounts
-    while [[ `grep "${BKUP_ROOT}" /proc/mounts` ]]; do
-        umount "${BKUP_ROOT}"
+    while [[ $(mountpoint "${BKUP_ROOT}/rw") ]]; do
+        umount "${BKUP_ROOT}/rw"
     done
 }
 
