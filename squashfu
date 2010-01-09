@@ -257,6 +257,7 @@ dispatch_backup () {
             "-c"|"--config")                    ;;
             "--check-size")                     ;;
             "--resquash") RESQUASH_AFTER=true   ;;
+            "--modifier") shift;MODIFIER=$1     ;;
             *) die "Invalid option $1"; usage   ;;
         esac
         shift
