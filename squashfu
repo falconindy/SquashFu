@@ -19,6 +19,10 @@ CONFIG=/etc/squashfu.conf
 source $CONFIG
 [[ $? -gt 0 ]] && die "Syntax error in config file."
 
+am_i_root () {
+    [[ $UID -eq 0 ]] || die "Must be root!"
+}
+
 create_directory_structure () {
     cd "${BKUP_ROOT}"
     mkdir -p {ro,rw,bins/{1..7}}
@@ -46,9 +50,8 @@ do_backup () {
     #  - Check for pre-existing mounts just in case (and unmount them)
     #  - do we have a proper (expected) directory structure in place?
     #       (Use cd to BKUP_ROOT to avoid issues with brace expansion in a quoted path)
-    [[ $UID -eq 0 ]] || die "Must be root!"
 
-    [[ -w "${BKUP_ROOT}" ]] || 
+    [[ -w "${BKUP_ROOT}" ]] ||
         die "Backup root is not accessible. Please check your setting in /etc/squashfu"
 
     unmount_all
@@ -183,6 +186,8 @@ run_rsync() {
 }
 
 unmount_all () {
+    am_i_root
+
     #Union must be unmounted first, or bad things happen
     unmount_custom
     unmount_union
@@ -270,6 +275,7 @@ HELP
 [[ $# -eq 0 ]] && usage
 
 dispatch_backup () {
+    am_i_root
     while [[ $# -gt 0 ]]; do
         case $1 in
             "-c"|"--config")                                                     ;;
@@ -286,6 +292,7 @@ dispatch_backup () {
 }
 
 dispatch_query () {
+    am_i_root
     # If no arg supplied, no need to parse
     [[ -z $1 ]] && query_usage
 
@@ -297,6 +304,7 @@ dispatch_query () {
 }
 
 dispatch_rollback () {
+    am_i_root
     # Check arguments conform
     [[ $# -eq 0 || $# -gt 2 ]] && {
         die "Invalid arguments to -R";
