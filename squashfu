@@ -169,6 +169,8 @@ query_usage () {
             printf "%25s %10.2f MiB\n" "Bin $bin" $(echo "scale=2;$bin_size / 1024 / 1024" | bc);
         done;
     }
+
+    exit 0
 }
 
 run_rsync() {
