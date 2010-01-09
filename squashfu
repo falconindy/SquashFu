@@ -64,6 +64,7 @@ do_backup () {
     ################################
     #  - does seed exist? (if not, our backup is creating the seed)
     #  - Prepare union mount with proper bins
+    #     - Mount entirely ro first, then open single branch as rw
     [[ -f "$SEED" ]] || {
         debug "No seed found -- creating a new one...";
         create_new_seed;
