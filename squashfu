@@ -63,7 +63,7 @@ do_backup () {
 
 
     ################################
-    # Ready for backup!
+    # Call for backup!
     ################################
     run_rsync
 
@@ -94,6 +94,13 @@ mount_seed () {
 }
 
 mount_union_ro () {
+    # Account for second arg from rollback function to mount at a different mountpoint
+    [[ -n "$2" ]] && {
+        MOUNT_POINT="$2";
+    } || {
+        MOUNT_POINT="${BKUP_ROOT}/rw";
+    }
+
     # build branch string
     branches="br="
     for i in `seq $1 -1 1`; do
@@ -103,12 +110,12 @@ mount_union_ro () {
 
     # build and execute mount command
     debug "Mounting union as entirely read only"
-    mount -t aufs none $BKUP_ROOT/rw -o udba=reval,$branches
+    mount -t aufs none "${MOUNT_POINT}" -o udba=reval,$branches
 }
 
 mount_union_up_to_day () {
     # convert DoW to a number
-    mount_union_ro `date --date=$1 +%u`
+    mount_union_ro `date --date=$1 +%u` $2
 }
 
 mount_union_branch_rw () {
@@ -176,6 +183,7 @@ unmount_union () {
 usage () {
     info "SquashFu: a backup solution hewn out of boredom"
     cat <<HELP
+
 USAGE
     squashfu <operation> [options]
 
@@ -205,25 +213,71 @@ OPTIONS
     Similar to --resquash except the old seed and incrementals are discarded
     after the new seed is created.
 
+  -c, --config
+    Specify an alternate location to a config file that will override defaults
+    provided in /etc/squashfu.conf.
 
 HELP
-    exit
+    exit 0
 }
 
-#Option parsing / Decision making
+# Dispatch
 [[ $# -eq 0 ]] && usage
 
+dispatch_backup () {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            "-c"|"--config")                    ;;
+            "--check-size")                     ;;
+            "--resquash") RESQUASH_AFTER=true   ;;
+            *) die "Invalid option $1"; usage   ;;
+        esac
+        shift
+    done
+}
+
+dispatch_query () {
+    # Don't check anything, just run the query.
+    # TODO: Add levels of querying
+    query_usage
+}
+
+dispatch_rollback () {
+    # Check arguments conform
+    [[ $# -eq 0 || $# -gt 2 ]] && {
+        die "Invalid arguments to -R";
+        usage;
+    }
+
+    # Ensure first rollback arg is a valid day of the week
+    [[ ! $(date --date=$1 >/dev/null 2>&1) ]] && {
+        die "Invalid day of week '$1'";
+        usage;
+    }
+
+    # TODO: Make sure that user isn't trying to mount in the future?
+    # This may not be an issue since the bins are cleaned after each
+    # resquash.
+
+    # Ensure second arg (if supplied) is a valid directory
+    [[ -n "$2" && ! -d "$2" ]] && {
+        die "'$2' is not a valid mount point"; 
+        usage;
+    }
+
+    # Convert day to numerical day of week and mount
+    mount_union_ro `date --date=$1 +%u` $2
+}
+
+# Determine operation and send to appropriate dispatcher
 while [[ $# -gt 0 ]]; do
     case $1 in
-        "-B")   do_backup             ;;
-        "-Q")   query_usage           ;;
-        "-c")                         ;;
-        "--resquash")                 ;;
-        "--check-size")               ;;
-        *) usage ;;
+        "-B")  shift; dispatch_backup $*             ;;
+        "-Q")  shift; dispatch_query                 ;;
+        "-R")  shift; dispatch_rollback $*           ;;
+        *)     usage                                 ;;
     esac
     shift
 done
-
 
 
