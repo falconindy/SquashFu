@@ -3,13 +3,15 @@
     - Only check space when resquashing?
 
 - Implement options
-    --resquash          manual resquash
-    --rollback=<day>    rollback to a day of the week
     -c <config file>    specify path to different config
 
-- Add logging
+- Add logging -- need to figure out how to handle color output
 
 - Filter output from commands
     -mostly done, mksquashfs is still noisy
 
-- Implement /tmp file for tracking custom mounts used with -R
+- Reorganize resquash code. Reused bits need to all end up out of the backup func so
+  that its possible in the future for a user to resquash without having to do a backup
+  first.
+
+- Figure out a better way to detect mounts with mountpoint. Using grep is not acceptable
