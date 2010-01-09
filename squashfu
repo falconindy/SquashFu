@@ -150,10 +150,6 @@ print_usage () {
     printf "%25s %10.2f MiB\n" "Seed size:" "$(echo "scale=2;$sfs_size / 1024 / 1024" | bc)"
     printf "%25s %10.2f MiB\n" "Total incremental size:" "$(echo "scale=2;$total_bin_size / 1024 / 1024" | bc)"
 
-    if [[ $total_bin_size -gt $sfs_size ]]; then
-        info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
-    fi
-
     # Full query
     [[ $1 == "full" ]] && {
         echo
@@ -162,6 +158,11 @@ print_usage () {
             bin_size=$(du -s "${BKUP_ROOT}/bins/$bin" 2>/dev/null | awk '{print $1}');
             printf "%25s %10.2f MiB\n" "Bin $bin" $(echo "scale=2;$bin_size / 1024 / 1024" | bc);
         done;
+    }
+
+    # Compare seed and bin size. Suggest resquash if needed.
+    [[ $total_bin_size -gt $sfs_size ]] && {
+        info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash";
     }
 
     exit 0
