@@ -90,6 +90,8 @@ do_backup () {
         mv "$SEED.replace" "$SEED"
     }
 
+    cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
+
     unmount_all
 
     [[ $REPORT ]] && query_usage full
@@ -120,7 +122,7 @@ mount_union_ro () {
     branches="${branches}${BKUP_ROOT}/ro=ro"
 
     # build and execute mount command
-    debug "Mounting union as entirely read only through branch $1"
+    debug "mount -t aufs none "${MOUNT_POINT}" -o udba=reval,$branches"
     mount -t aufs none "${MOUNT_POINT}" -o udba=reval,$branches
 }
 
@@ -189,13 +191,14 @@ unmount_custom () {
         while read mount; do
             umount $mount
         done < /tmp/squashfu.custom;
+        rm /tmp/squashfu.custom;
     }
 }
 
 unmount_seed () {
     # Account for possibility of multiple mounts
     debug "Checking for and unmounting seed"
-    while [[ $(mountpoint -q "${BKUP_ROOT}/ro") ]]; do
+    while [[ $(mountpoint "${BKUP_ROOT}/ro" | grep "is a mount") ]]; do
         umount "${SEED}"
     done
 }
@@ -203,7 +206,7 @@ unmount_seed () {
 unmount_union () {
     # Account for possibility of multiple mounts
     debug "Checking for and unmounting union"
-    while [[ $(mountpoint -q "${BKUP_ROOT}/rw") ]]; do
+    while [[ $(mountpoint "${BKUP_ROOT}/rw" | grep "is a mount") ]]; do
         debug "Found mount, attempting to unmount..."
         umount "${BKUP_ROOT}/rw"
     done
@@ -316,6 +319,8 @@ dispatch_rollback () {
     # Don't mount union multiple times
     unmount_custom
     unmount_union
+
+    mount_seed
 
     # Convert day to numerical day of week and mount
     mount_union_ro $(date --date=$1 +%u) $2
