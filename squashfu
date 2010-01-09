@@ -97,6 +97,7 @@ mount_union_ro () {
     # Account for second arg from rollback function to mount at a different mountpoint
     [[ -n "$2" ]] && {
         MOUNT_POINT="$2";
+        echo "$2" >> /tmp/squashfu.custom
     } || {
         MOUNT_POINT="${BKUP_ROOT}/rw";
     }
@@ -166,20 +167,30 @@ run_rsync() {
 
 unmount_all () {
     #Union must be unmounted first, or bad things happen
+    unmount_custom
     unmount_union
     unmount_seed
 }
 
+unmount_custom () {
+    # Unmount any custom mounts from rollback operations
+    [[ -f /tmp/squashfu.custom ]] && {
+        while read mount; do
+            umount $mount
+        done < /tmp/squashfu.custom;
+    }
+}
+
 unmount_seed () {
     # Account for possibility of multiple mounts
-    while [[ $(mountpoint "${BKUP_ROOT}/ro") ]]; do
+    while [[ $(mountpoint -q "${BKUP_ROOT}/ro") ]]; do
         umount "${SEED}"
     done
 }
 
 unmount_union () {
     # Account for possibility of multiple mounts
-    while [[ $(mountpoint "${BKUP_ROOT}/rw") ]]; do
+    while [[ $(mountpoint -q "${BKUP_ROOT}/rw") ]]; do
         umount "${BKUP_ROOT}/rw"
     done
 }
