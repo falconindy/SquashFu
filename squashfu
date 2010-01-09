@@ -19,6 +19,11 @@ CONFIG=/etc/squashfu.conf
 source $CONFIG
 [[ $? -gt 0 ]] && die "Syntax error in config file."
 
+create_directory_structure () {
+    cd "${BKUP_ROOT}"
+    mkdir -p {ro,rw,bins/{1..7}}
+}
+
 create_new_seed () {
     # Create a new squashfs based on the contents of the union
     # It's okay if we make an empty squash, we'll tell the user
@@ -48,7 +53,7 @@ do_backup () {
 
     unmount_all
 
-    cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
+    create_directory_structure
 
 
     ################################
@@ -84,13 +89,13 @@ do_backup () {
         [[ $KEEP_LAST_WEEK ]] && {
             save_old_tree;
         } || {
-            rm $SEED;
+            rm "$SEED";
+            rm -r "${BKUP_ROOT}/bins"
         }
 
         mv "$SEED.replace" "$SEED"
+        create_directory_structure
     }
-
-    cd "$BKUP_ROOT" && mkdir -p {rw,ro,bins/{1,2,3,4,5,6,7}}
 
     unmount_all
 
