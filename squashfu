@@ -73,6 +73,8 @@ do_backup () {
     ################################
     #  - Is this resquash day? If so, we need a new squash
     #  - If new squash creation fails, we're in trouble. (by default, keep previous week)
+    #  - Call unmount_all when we're done
+    #  - Print a report if it were requested
     [[ $(date +%u) -eq $RESQUASH_DAY ]] && {
         create_new_seed
         # Set aside last week's tree if user opted to, else delete it all
@@ -83,6 +85,10 @@ do_backup () {
             rm $SEED
         fi
     }
+
+    unmount_all
+
+    [[ $REPORT ]] && query_usage full
 }
 
 mount_seed () {
@@ -162,7 +168,7 @@ run_rsync() {
     debug "   Options: ${RSYNC_OPTS[@]}"
     debug "   Includes: ${INCLUDES[@]}"
     debug "   Excludes: ${EXCLUDES[@]}"
-    rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw || return 1
+    rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw
 }
 
 unmount_all () {
@@ -240,7 +246,7 @@ OPTIONS
     sufficient space for this operation, or bad things will happen. You can
     use the -Q operation to estimate how much free space you will need.
 
-  --resquash-destroy-old
+  --resquash-discard-old
     Similar to --resquash except the old seed and incrementals are discarded
     after the new seed is created.
 
@@ -254,11 +260,12 @@ HELP
 dispatch_backup () {
     while [[ $# -gt 0 ]]; do
         case $1 in
-            "-c"|"--config")                    ;;
-            "--check-size")                     ;;
-            "--resquash") RESQUASH_AFTER=true   ;;
-            "--modifier") shift;MODIFIER=$1     ;;
-            *) die "Invalid option $1"; usage   ;;
+            "-c"|"--config")                                                     ;;
+            "--report") REPORT=true                                              ;;
+            "--resquash") RESQUASH_AFTER=true;KEEP_LAST_WEEK=true                ;;
+            "--resquash-discard-old") RESQUASH_AFTER=true;KEEP_LAST_WEEK=false   ;;
+            "--modifier") shift;MODIFIER=$1                                      ;;
+            *) die "Invalid option $1"; usage                                    ;;
         esac
         shift
     done
