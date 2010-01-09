@@ -153,13 +153,24 @@ run_rsync() {
     rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw || return 1
 }
 
-# Unmount union and squash
 unmount_all () {
     #Union must be unmounted first, or bad things happen
-    grep "${BKUP_ROOT}/rw" /proc/mounts && 
-        { debug Unmounting union...; umount "$BKUP_ROOT/rw"; }
-    grep "${SEED}" /proc/mounts &&
-        { debug Unmounting squash...; umount "${SEED}"; }
+    unmount_union
+    unmount_seed
+}
+
+unmount_seed () {
+    # Account for possibility of multiple mounts
+    while [[ `grep "${SEED}" /proc/mounts` ]]; do
+        umount "${SEED}"
+    done
+}
+
+unmount_union () {
+    # Account for possibility of multiple mounts
+    while [[ `grep "${BKUP_ROOT}" /proc/mounts` ]]; do
+        umount "${BKUP_ROOT}"
+    done
 }
 
 usage () {
