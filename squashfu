@@ -126,21 +126,26 @@ move_old_tree () {
 
 query_usage () {
     # Do another sanity check -- check sizes of bins versus squash.
-    bin_size=$(du -s ${BKUP_ROOT}/bins 2>/dev/null | awk '{print $1}')
+    total_bin_size=$(du -s ${BKUP_ROOT}/bins 2>/dev/null | awk '{print $1}')
     sfs_size=$(stat -c %s $SEED 2>/dev/null)
 
     # Basic query
-    info "Usage report (in mb):\n"
-    printf "%30s %10.2f\n" "Seed size:" "`echo "scale=2;$sfs_size / 1024 / 1024" | bc`"
-    printf "%30s %10.2f\n" "Total incremental size:" "`echo "scale=2;$bin_size / 1024 / 1024" | bc`"
+    info "Overall Usage:"
+    printf "%25s %10.2f MiB\n" "Seed size:" "$(echo "scale=2;$sfs_size / 1024 / 1024" | bc)"
+    printf "%25s %10.2f MiB\n" "Total incremental size:" "$(echo "scale=2;$total_bin_size / 1024 / 1024" | bc)"
 
-    if [[ $bin_size -gt $sfs_size ]]; then
+    if [[ $total_bin_size -gt $sfs_size ]]; then
         info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash"
     fi
 
     # Full query
     [[ $1 == "full" ]] && {
-        debug "There should be stuff here about individual bin size";
+        echo
+        info "Detailed Usage By Bin:"
+        for bin in {1..7}; do
+            bin_size=$(du -s "${BKUP_ROOT}/bins/$bin" 2>/dev/null | awk '{print $1}');
+            printf "%25s %10.2f MiB\n" "Bin $bin" $(echo "scale=2;$bin_size / 1024 / 1024" | bc);
+        done;
     }
 }
 
