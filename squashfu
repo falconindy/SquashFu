@@ -181,6 +181,11 @@ run_rsync() {
     debug "   Includes: ${INCLUDES[@]}"
     debug "   Excludes: ${EXCLUDES[@]}"
     rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw
+
+    # Force flush of pseudo links on branches to ensure clean dismount
+    # Our umount.aufs helper can do this for us, but it doesn't handle
+    # rsync hangups very well.
+    auplink "${BKUP_ROOT}/rw" flush
 }
 
 save_old_tree () {
