@@ -103,7 +103,7 @@ do_backup () {
 
     unmount_all
 
-    [[ $REPORT ]] && query_usage full
+    [[ $REPORT ]] && print_usage full
 }
 
 mount_seed () {
@@ -146,7 +146,7 @@ save_old_tree () {
     cd "$BKUP_ROOT" && mv {$SEED,bins/} "${BKUP_ROOT}/last-week"
 }
 
-query_usage () {
+print_usage () {
     # Do another sanity check -- check sizes of bins versus squash.
     total_bin_size=$(du -s ${BKUP_ROOT}/bins 2>/dev/null | awk '{print $1}')
     sfs_size=$(stat -c %s $SEED 2>/dev/null)
@@ -237,7 +237,7 @@ OPERATIONS
     Runs a regular backup, using the config file at /etc/squashfu, unless
     otherwise specified with the -c option.
 
-  -Q
+  -U
     Displays the size of the seed, the incrementals, and the actual backup. If
     you provide no additional options, a basic report will be given. Specifying
     "full" will give more detail about individual bins.
@@ -296,15 +296,15 @@ dispatch_backup () {
     do_backup
 }
 
-dispatch_query () {
+dispatch_report () {
     am_i_root
     # If no arg supplied, no need to parse
-    [[ -z $1 ]] && query_usage
+    [[ -z $1 ]] && print_usage
 
     # Check for valid arg
     case $1 in
-        "full") query_usage full ;;
-        *)      die "Invalid query option"; usage ;;
+        "full") print_usage full ;;
+        *)      die "Invalid report option"; usage ;;
     esac
 }
 
@@ -312,7 +312,7 @@ dispatch_rollback () {
     am_i_root
     # Check arguments conform
     [[ $# -eq 0 || $# -gt 2 ]] && {
-        die "Invalid arguments to -R";
+        die "Invalid rollback option";
         usage;
     }
 
@@ -348,7 +348,7 @@ dispatch_rollback () {
 while [[ $# -gt 0 ]]; do
     case $1 in
         "-B")  shift; dispatch_backup $*             ;;
-        "-Q")  shift; dispatch_query $1              ;;
+        "-U")  shift; dispatch_report $1             ;;
         "-R")  shift; dispatch_rollback $*           ;;
         "-Z")  unmount_all                           ;;
         *)     usage                                 ;;
