@@ -24,7 +24,11 @@ create_new_seed () {
     # It's okay if we make an empty squash, we'll tell the user
     # about it at the end and suggest --resquash
     debug "Making new squash seed $(basename $SEED)"
-    mksquashfs "${BKUP_ROOT}/rw" "$SEED" -b 65536
+    [[ $1 == "replace" ]] && {
+        mksquashfs "${BKUP_ROOT}/rw" "$SEED.replace" -b 65536;
+    } || {
+        mksquashfs "${BKUP_ROOT}/rw" "$SEED" -b 65536;
+    }
 }
 
 # The meat and potatoes of this bad agent.
@@ -75,15 +79,15 @@ do_backup () {
     #  - If new squash creation fails, we're in trouble. (by default, keep previous week)
     #  - Call unmount_all when we're done
     #  - Print a report if it were requested
-    [[ $(date +%u) -eq $RESQUASH_DAY ]] && {
-        create_new_seed
-        # Set aside last week's tree if user opted to, else delete it all
-        if [[ $KEEP_LAST_WEEK -eq 1 ]]; then
-            move_old_tree
-        else
-            find "${BKUP_ROOT}/bins/" -type f -delete
-            rm $SEED
-        fi
+    [[ $(date +%u) -eq $RESQUASH_DAY || $RESQUASH_AFTER ]] && {
+        create_new_seed replace
+        [[ $KEEP_LAST_WEEK ]] && {
+            save_old_tree;
+        } || {
+            rm $SEED;
+        }
+
+        mv "$SEED.replace" "$SEED"
     }
 
     unmount_all
@@ -125,10 +129,10 @@ mount_union_branch_rw () {
     mount -o remount,mod:bins/$1=rw "${BKUP_ROOT}/rw"
 }
 
-move_old_tree () {
-    storage="${BKUP_ROOT}/bkup-$(date +%Y-%m-%d)"
-    mkdir "$storage"
-    cd "$BKUP_ROOT" && mv {$SEED,bins/} "$storage"
+save_old_tree () {
+    # create new directory, and then set aside old seed -- yes, you can do this while its mounted
+    mkdir "${BKUP_ROOT}/last-week"
+    cd "$BKUP_ROOT" && mv {$SEED,bins/} "${BKUP_ROOT}/last-week"
 }
 
 query_usage () {
