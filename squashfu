@@ -42,9 +42,9 @@ create_new_seed () {
 
 # The meat and potatoes of this bad agent.
 do_backup () {
-    ################################
-    # Sanity checks
-    ################################
+    ###########################
+    #      Sanity checks      #
+    ###########################
     #  - Are we root?
     #  - is our BKUP_ROOT valid? (FAIL)
     #  - Check for pre-existing mounts just in case (and unmount them)
@@ -59,9 +59,9 @@ do_backup () {
     create_directory_structure
 
 
-    ################################
-    # Prep work
-    ################################
+    #######################
+    #      Prep work      #
+    #######################
     #  - does seed exist? (if not, our backup is creating the seed)
     #  - Prepare union mount with proper bins
     #     - Mount entirely ro first, then open single branch as rw
@@ -75,15 +75,15 @@ do_backup () {
     mount_union_branch_rw $(( $(date +%u) + $MODIFIER ))
 
 
-    ################################
-    # Call for backup!
-    ################################
+    ############################
+    #     Call for backup!     #
+    ############################
     run_rsync
 
 
-    ################################
-    # Cleanup 
-    ################################
+    #####################
+    #      Cleanup      #
+    #####################
     #  - Is this resquash day? If so, we need a new squash
     #  - If new squash creation fails, we're in trouble. (by default, keep previous week)
     #  - Call unmount_all when we're done
@@ -272,7 +272,9 @@ HELP
     exit 0
 }
 
-# Dispatch
+#####################
+#     Dispatch      #
+#####################
 [[ $# -eq 0 ]] && usage
 
 dispatch_backup () {
