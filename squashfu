@@ -172,8 +172,8 @@ run_rsync() {
     # Gather includes and excludes from config file
     # No error checking here -- user better not have
     # effed up the config
-    INCLUDES=($(grep ^#+ $CONFIG | cut -d+ -f2-))
-    EXCLUDES=($(grep ^#- $CONFIG | cut -d- -f2-))
+    INCLUDES=($(sed -n '/^<<INCLUDES$/,/^INCLUDES$/p' $CONFIG | grep -vE "^<*INCLUDES$"))
+    EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | grep -vE "^<*EXCLUDES$"))
 
     # rsync source to $BKUP_ROOT/rw
     debug "Rsync executing with:"
