@@ -113,11 +113,6 @@ mount_union_ro () {
     mount -t aufs none "${MOUNT_POINT}" -o udba=reval,$branches
 }
 
-mount_union_up_to_day () {
-    # convert DoW to a number
-    mount_union_ro `date --date=$1 +%u` $2
-}
-
 mount_union_branch_rw () {
     debug "Remount branch $i as read-write"
     mount -o remount,mod:bins/$1=rw "${BKUP_ROOT}/rw"
