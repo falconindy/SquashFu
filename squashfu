@@ -348,6 +348,8 @@ dispatch_rollback () {
 
     # Convert day to numerical day of week and mount
     mount_union_ro $(date --date=$1 +%u) $2
+
+    exit 0
 }
 
 # Determine operation and send to appropriate dispatcher
