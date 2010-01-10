@@ -58,10 +58,7 @@ do_backup () {
     }
 
     # Mount the necessary bins all as ro
-    mount_union_ro $(( $(date +%u) + $MODIFIER ))
-
-    # Remount today's bin as rw
-    mount_union_branch_rw $(( $(date +%u) + $MODIFIER ))
+    mount_union $(( $(date +%u) + $MODIFIER ))
 
     # Do the backup! Do doo doo doooo
     run_rsync
@@ -69,7 +66,7 @@ do_backup () {
     # Force flush of pseudo links on branches to ensure clean dismount
     # Our umount.aufs helper can do this for us, but it doesn't handle
     # rsync hangups very well.
-    auplink "${BKUP_ROOT}/rw" flush
+    # auplink "${BKUP_ROOT}/rw" flush
 
     # Give the union a few seconds to settle before we touch it.
     sleep 5
@@ -101,7 +98,7 @@ mount_seed () {
     }
 }
 
-mount_union_ro () {
+mount_union () {
     # Account for second arg from rollback function to mount at a different mountpoint
     [[ -n "$2" ]] && {
         MOUNT_POINT="$(readlink -f $2)";
@@ -110,9 +107,10 @@ mount_union_ro () {
         MOUNT_POINT="${BKUP_ROOT}/rw";
     }
 
-    # build branch string
-    branches="br="
-    for i in $(seq $1 -1 1); do
+    # build mount string
+    # mount the first bin as rw, the rest as ro, and the seed as ro
+    branches="br=${BKUP_ROOT}/bins/$i=rw:"
+    for i in $(seq $(($1 - 1)) -1 1); do
         branches="${branches}${BKUP_ROOT}/bins/${i}=ro:"
     done
     branches="${branches}${BKUP_ROOT}/ro=ro"
@@ -120,11 +118,6 @@ mount_union_ro () {
     # build and execute mount command
     debug "mount -t aufs none "${MOUNT_POINT}" -o udba=reval,$branches"
     mount -t aufs none "${MOUNT_POINT}" -o udba=reval,$branches
-}
-
-mount_union_branch_rw () {
-    debug "Remount branch $1 as read-write"
-    mount -o remount,mod:bins/$1=rw "${BKUP_ROOT}/rw"
 }
 
 print_usage () {
@@ -334,7 +327,7 @@ dispatch_rollback () {
     mount_seed
 
     # Convert day to numerical day of week and mount
-    mount_union_ro $(date --date=$1 +%u) $2
+    mount_union $(date --date=$1 +%u) $2
 
     exit 0
 }
