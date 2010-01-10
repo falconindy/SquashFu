@@ -109,7 +109,7 @@ mount_union () {
 
     # build mount string
     # mount the first bin as rw, the rest as ro, and the seed as ro
-    branches="br=${BKUP_ROOT}/bins/$i=rw:"
+    branches="br=${BKUP_ROOT}/bins/$1=rw:"
     for i in $(seq $(($1 - 1)) -1 1); do
         branches="${branches}${BKUP_ROOT}/bins/${i}=ro:"
     done
