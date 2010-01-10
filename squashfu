@@ -265,6 +265,9 @@ OPTIONS
     Specify an alternate location to a config file that will override defaults
     provided in /etc/squashfu.conf.
 
+  --report
+    Provide a usage report after the backup has completed.
+
   --resquash
     To be used with the -B operation. This forces a new squashed seed to be 
     created when the backup finishes. The original seed and incrementals are
@@ -303,7 +306,7 @@ dispatch_backup () {
 }
 
 dispatch_report () {
-    am_i_root
+    #am_i_root
     # If no arg supplied, no need to parse
     [[ -z $1 ]] && print_usage
 
