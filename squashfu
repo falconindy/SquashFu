@@ -278,7 +278,7 @@ dispatch_backup () {
             "--resquash") RESQUASH_AFTER=true;KEEP_LAST_WEEK=true                ;;
             "--resquash-discard-old") RESQUASH_AFTER=true;KEEP_LAST_WEEK=false   ;;
             "--modifier") shift;MODIFIER=$1                                      ;;
-            *) die "Invalid option $1"; usage                                    ;;
+            *) die "Invalid backup option $1"; usage                             ;;
         esac
         shift
     done
@@ -290,14 +290,13 @@ dispatch_backup () {
 
 dispatch_report () {
     #am_i_root
-    # If no arg supplied, no need to parse
-    [[ -z $1 ]] && print_usage
 
     # Check for valid arg
     case $1 in
+        "")     print_usage ;;
         "full") print_usage full ;;
         *)      die "Invalid report option"; usage ;;
-    esac
+    esac;
 
     exit 0
 }
