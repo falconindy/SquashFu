@@ -79,7 +79,7 @@ do_backup () {
     #     Call for backup!     #
     ############################
     run_rsync
-
+    sleep 5
 
     #####################
     #      Cleanup      #
