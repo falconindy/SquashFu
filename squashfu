@@ -117,8 +117,8 @@ mount_seed () {
 mount_union_ro () {
     # Account for second arg from rollback function to mount at a different mountpoint
     [[ -n "$2" ]] && {
-        MOUNT_POINT="$2";
-        echo "$2" >> /tmp/squashfu.custom
+        MOUNT_POINT="$(readlink -f $2)";
+        echo "$MOUNT_POINT" >> /tmp/squashfu.custom
     } || {
         MOUNT_POINT="${BKUP_ROOT}/rw";
     }
