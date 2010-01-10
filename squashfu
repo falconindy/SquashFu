@@ -66,10 +66,6 @@ do_backup () {
     # Force flush of pseudo links on branches to ensure clean dismount
     # Our umount.aufs helper can do this for us, but it doesn't handle
     # rsync hangups very well.
-    # auplink "${BKUP_ROOT}/rw" flush
-
-    # Give the union a few seconds to settle before we touch it.
-    sleep 5
 
     # Is there reason to resquash?
     [[ $(date +%u) -eq $RESQUASH_DAY || $RESQUASH_AFTER ]] && {
