@@ -158,7 +158,7 @@ run_rsync() {
     debug "   Options: ${RSYNC_OPTS[@]}"
     debug "   Includes: ${INCLUDES[@]}"
     debug "   Excludes: ${EXCLUDES[@]}"
-    rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw
+    rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "${BKUP_ROOT}/rw"
 
 }
 
