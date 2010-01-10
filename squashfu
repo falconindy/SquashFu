@@ -66,6 +66,8 @@ do_backup () {
     # Force flush of pseudo links on branches to ensure clean dismount
     # Our umount.aufs helper can do this for us, but it doesn't handle
     # rsync hangups very well.
+    sleep 5
+    auplink "${BKUP_ROOT}/rw" flush
 
     # Is there reason to resquash?
     [[ $(date +%u) -eq $RESQUASH_DAY || $RESQUASH_AFTER ]] && {
@@ -147,7 +149,9 @@ run_rsync() {
     # No error checking here -- user better not have
     # effed up the config
     INCLUDES=($(sed -n '/^<<INCLUDES$/,/^INCLUDES$/p' $CONFIG | grep -vE "^<*INCLUDES$"))
-    EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | grep -vE "^<*EXCLUDES$"))
+    EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | \
+                grep -vE "^<*EXCLUDES$" | \
+                sed -n 's/\(.*\)/--exclude "\1"/p'))
 
     # rsync source to $BKUP_ROOT/rw
     debug "Rsync executing with:"
@@ -170,7 +174,7 @@ unmount_all () {
     #Union must be unmounted first, or bad things happen
     unmount_custom
     unmount_union
-    unmount_seed
+    #unmount_seed
 }
 
 unmount_custom () {
