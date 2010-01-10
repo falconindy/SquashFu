@@ -42,52 +42,39 @@ create_new_seed () {
 
 # The meat and potatoes of this bad agent.
 do_backup () {
-    ###########################
-    #      Sanity checks      #
-    ###########################
-    #  - Are we root?
-    #  - is our BKUP_ROOT valid? (FAIL)
-    #  - Check for pre-existing mounts just in case (and unmount them)
-    #  - do we have a proper (expected) directory structure in place?
-    #       (Use cd to BKUP_ROOT to avoid issues with brace expansion in a quoted path)
-
     [[ -w "${BKUP_ROOT}" ]] ||
         die "Backup root is not accessible. Please check your setting in /etc/squashfu"
 
+    # Sanitize our workspace.
     unmount_all
 
+    # Ensure that we have directories to mount and write to
     create_directory_structure
 
-
-    #######################
-    #      Prep work      #
-    #######################
-    #  - does seed exist? (if not, our backup is creating the seed)
-    #  - Prepare union mount with proper bins
-    #     - Mount entirely ro first, then open single branch as rw
+    # We need a seed to mount, even if it's going to be empty
     [[ -f "$SEED" ]] || {
         debug "No seed found -- creating a new one...";
         create_new_seed;
     }
 
+    # Mount the necessary bins all as ro
     mount_union_ro $(( $(date +%u) + $MODIFIER ))
 
+    # Remount today's bin as rw
     mount_union_branch_rw $(( $(date +%u) + $MODIFIER ))
 
-
-    ############################
-    #     Call for backup!     #
-    ############################
+    # Do the backup! Do doo doo doooo
     run_rsync
+
+    # Force flush of pseudo links on branches to ensure clean dismount
+    # Our umount.aufs helper can do this for us, but it doesn't handle
+    # rsync hangups very well.
+    auplink "${BKUP_ROOT}/rw" flush
+
+    # Give the union a few seconds to settle before we touch it.
     sleep 5
 
-    #####################
-    #      Cleanup      #
-    #####################
-    #  - Is this resquash day? If so, we need a new squash
-    #  - If new squash creation fails, we're in trouble. (by default, keep previous week)
-    #  - Call unmount_all when we're done
-    #  - Print a report if it were requested
+    # Is there reason to resquash?
     [[ $(date +%u) -eq $RESQUASH_DAY || $RESQUASH_AFTER ]] && {
         create_new_seed replace
         [[ $KEEP_LAST_WEEK ]] && {
@@ -101,9 +88,9 @@ do_backup () {
         create_directory_structure
     }
 
-    unmount_all
-
     [[ $REPORT ]] && print_usage full
+
+    unmount_all
 }
 
 mount_seed () {
@@ -164,8 +151,6 @@ print_usage () {
     [[ $total_bin_size -gt $sfs_size ]] && {
         info "Your incrementals are larger than your seed! You might consider resquashing your backup with $0 --resquash";
     }
-
-    exit 0
 }
 
 run_rsync() {
@@ -182,10 +167,6 @@ run_rsync() {
     debug "   Excludes: ${EXCLUDES[@]}"
     rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} ${BKUP_ROOT}/rw
 
-    # Force flush of pseudo links on branches to ensure clean dismount
-    # Our umount.aufs helper can do this for us, but it doesn't handle
-    # rsync hangups very well.
-    auplink "${BKUP_ROOT}/rw" flush
 }
 
 save_old_tree () {
@@ -303,6 +284,8 @@ dispatch_backup () {
     done
 
     do_backup
+
+    exit 0
 }
 
 dispatch_report () {
@@ -315,6 +298,8 @@ dispatch_report () {
         "full") print_usage full ;;
         *)      die "Invalid report option"; usage ;;
     esac
+
+    exit 0
 }
 
 dispatch_rollback () {
