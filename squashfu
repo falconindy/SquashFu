@@ -10,7 +10,7 @@ info () {
 }
 
 die () {
-    echo -e '\033[1;31mFATAL ::\033[1;m ' $*
+    echo -e '\033[1;31mFATAL ::\033[1;m ' $* >&2
     exit 1
 }
 
