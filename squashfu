@@ -19,19 +19,6 @@ die () {
     exit 1
 }
 
-check_for_resquash () {
-# Args: none
-# Returns: number of bins needing to be merged
-    local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
-    debug "Found $number_of_bins bins"
-
-    if [[ $number_of_bins -gt $MAX_BINS ]]; then
-        return $[ $number_of_bins - $MIN_BINS ]
-    else
-        return 0
-    fi
-}
-
 create_new_squash () {
 # Args: number of bins to be squashed (as determined by check_for_resquash), -1 on initial creation
 # Returns: 0 on success, non-zero on failure
@@ -102,6 +89,31 @@ create_new_incremental () {
     return $?
 }
 
+create_new_bin () {
+# Arguments: 1, the number of the bin to create
+# Returns: 0 on success, non-zero on error
+
+    debug "Asked to create new bin: $1"
+    # Create new directory, fail if it exists (something's wrong)
+    mkdir "${BINS_DIR}/$1"
+    if [[ $? -ne 0 ]]; then
+        return $?
+    fi
+
+    # Update binventory with new bin name and timestamp
+    debug "Updating $BINVENTORY, adding bin $1"
+    echo "${1}:$(date +%s)" >> "$BINVENTORY"
+
+    # If write to bin list fails, remove diretory and exit
+    if [[ $? -ne 0 ]]; then
+        rmdir "${BINS_DIR}/${1}"
+        die "Error writing to '$BINVENTORY'"
+    fi
+
+    return
+}
+
+# Mounting functions
 mount_squash () {
 # Arguments: none
 # Returns: return code of mount command
@@ -128,60 +140,6 @@ mount_union_with_bins () {
     mount -t aufs none "$UNION_MOUNT" -o udba=reval,$branches
 
     return $?
-}
-
-get_next_available_bin () {
-# Arguments: none
-# Returns: Numeric value of the next unused bin
-    next_bin=$[ $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1) + 1 ]
-    debug "Next available bin = $next_bin"
-    return $next_bin
-}
-
-sweep_bins () {
-# Arguments: none
-# Returns: none
-    debug "Entering sweep_bins"
-    count=1
-
-    # Make sure bins are numbered in order, clean up if not. In other words,
-    # if we have 10 bins, make sure they're ordered 1 through 10.
-    ls "${BINS_DIR}" | while read bin; do
-    #for bin in "${BINS_DIR}/*"; do
-        if [[ ! -d "${BINS_DIR}/$count" ]]; then
-            high_bin=$(ls "${BINS_DIR}" | sort -n | tail -1)
-            mv "${BINS_DIR}/$high_bin" "${BINS_DIR}/$count"
-            sed -i "/^$high_bin:/s/^$high_bin:/$count:/" "$BINVENTORY"
-        fi
-        count=$[ $count + 1 ]
-    done
-    debug "Leaving sweep_bins"
-    ls "$BINS_DIR"
-
-}
-
-create_new_bin () {
-# Arguments: 1, the number of the bin to create
-# Returns: 0 on success, non-zero on error
-
-    debug "Asked to create new bin: $1"
-    # Create new directory, fail if it exists (something's wrong)
-    mkdir "${BINS_DIR}/$1"
-    if [[ $? -ne 0 ]]; then
-        return $?
-    fi
-
-    # Update binventory with new bin name and timestamp
-    debug "Updating $BINVENTORY, adding bin $1"
-    echo "${1}:$(date +%s)" >> "$BINVENTORY"
-
-    # If write to bin list fails, remove diretory and exit
-    if [[ $? -ne 0 ]]; then
-        rmdir "${BINS_DIR}/${1}"
-        die "Error writing to '$BINVENTORY'"
-    fi
-
-    return
 }
 
 # Unmounting functions
@@ -216,33 +174,47 @@ unmount_all () {
     unmount_squash
 }
 
-usage () {
-    info "SquashFu: a backup solution hewn out of boredom"
-    cat <<HELP
+check_for_resquash () {
+# Args: none
+# Returns: number of bins needing to be merged
+    local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
+    debug "Found $number_of_bins bins"
 
-USAGE
-    squashfu <operation>
+    if [[ $number_of_bins -gt $MAX_BINS ]]; then
+        return $[ $number_of_bins - $MIN_BINS ]
+    else
+        return 0
+    fi
+}
 
-OPERATIONS
-  -B
-    Runs a regular backup, using the config file at /etc/squashfu, unless
-    otherwise specified with the -c option.
+get_next_available_bin () {
+# Arguments: none
+# Returns: Numeric value of the next unused bin
+    next_bin=$[ $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1) + 1 ]
+    debug "Next available bin = $next_bin"
+    return $next_bin
+}
 
-  -Q
-    Displays the size of the seed, the incrementals, and the actual backup. If
-    you provide no additional options, a basic report will be given. Specifying
-    "full" will give more detail about individual bins.
+sweep_bins () {
+# Arguments: none
+# Returns: none
+    debug "Entering sweep_bins"
+    count=1
 
-  -R <number of bins>
-    Rollback specified number of backups and mount union for browsing. The rolled
-    back data will be mounted at $UNION_MOUNT.
+    # Make sure bins are numbered in order, clean up if not. In other words,
+    # if we have 10 bins, make sure they're ordered 1 through 10.
+    ls "${BINS_DIR}" | while read bin; do
+    #for bin in "${BINS_DIR}/*"; do
+        if [[ ! -d "${BINS_DIR}/$count" ]]; then
+            high_bin=$(ls "${BINS_DIR}" | sort -n | tail -1)
+            mv "${BINS_DIR}/$high_bin" "${BINS_DIR}/$count"
+            sed -i "/^$high_bin:/s/^$high_bin:/$count:/" "$BINVENTORY"
+        fi
+        count=$[ $count + 1 ]
+    done
+    debug "Leaving sweep_bins"
+    ls "$BINS_DIR"
 
-  -U
-    Unmount squash and union. Although SquashFu will always check and unmount as 
-    necessary before an operation, this is provided as a safeguard.
-
-HELP
-    exit 0
 }
 
 action_backup () {
@@ -335,6 +307,35 @@ action_report () {
     echo
     printf "%10s\t%25s\t%7s\n" "" "Grand Total" \
            "$(du -csh "$BINS_DIR" "$SEED" 2>/dev/null | grep -E "total$" | awk '{print $1}')"
+}
+
+usage () {
+    info "SquashFu: a backup solution hewn out of boredom"
+    cat <<HELP
+
+USAGE
+    squashfu <operation>
+
+OPERATIONS
+  -B
+    Runs a regular backup, using the config file at /etc/squashfu, unless
+    otherwise specified with the -c option.
+
+  -Q
+    Displays the size of the seed, the incrementals, and the actual backup. If
+    you provide no additional options, a basic report will be given. Specifying
+    "full" will give more detail about individual bins.
+
+  -R <number of bins>
+    Rollback specified number of backups and mount union for browsing. The rolled
+    back data will be mounted at $UNION_MOUNT.
+
+  -U
+    Unmount squash and union. Although SquashFu will always check and unmount as 
+    necessary before an operation, this is provided as a safeguard.
+
+HELP
+    exit 0
 }
 
 case $1 in
