@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source /etc/squashfu.conf
+
 # Informational output w/ happy colors
 debug () {
     [[ $DEBUG ]] && echo -e '\033[1;33mDEBUG ::\033[1;m ' $*
@@ -92,7 +94,12 @@ create_new_bin () {
 
     # Update binventory with new bin name and timestamp
     echo "${1}:$(stat -c %u ${BINS_DIR}/$1)" >> "$BINVENTORY"
-    return $?
+
+    # If write to bin list fails, remove diretory and exit
+    if [[ $? -ne 0 ]]; then
+        rmdir "${BINS_DIR}/${1}"
+        die "Error writing to '$BINVENTORY'"
+    fi
 
 }
 
@@ -191,10 +198,41 @@ create_new_incremental () {
 }
 
 action_backup () {
-# Args:
-#
-    debug "IOU: one backup"; exit 0
+# Args: options array squashfu was invoked with, shifted 1
+# Returns: none
 
+    # Does the binventory exist? If not, prompt to make sure this is an initialization
+    if [[ ! -f "$BINVENTORY" || ! -f "$SEED" ]]; then
+        read -n "Looks like this is your first time running SquashFu. Is this correct? (y/n) " ans
+        while [[ true ]]; do
+            case $ans in
+                [yY]) break ;;
+                [nN]) die "Your bin inventory and/or seed seem to be missing. Please fix this before continuing." ;;
+                *) ;;
+            esac
+        done
+
+        # If we got here, the user answered yes, so initialize a new structure
+        mkdir -p "${BKUP_ROOT}/rw"
+        mkdir -p "${BKUP_ROOT}/ro"
+        mkdir -p "${BINS_DIR}"
+        touch "$BINVENTORY"
+        create_new_squash -1
+        FIRST_RUN=1
+    fi
+
+    create_new_incremental
+
+    check_for_resquash
+    if [[ val=$? -gt 0 ]]; then
+        create_new_squash $val
+    elif [[ $FIRST_RUN -eq 1 ]]; then
+        create_new_squash 1
+    fi
+
+    # TODO: Report if requested
+
+    unmount_all
 }
 
 action_rollback () {
@@ -213,5 +251,5 @@ action_report () {
 
 }
 
-
+action_backup
 
