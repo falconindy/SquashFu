@@ -1,17 +1,10 @@
-- Add sanity check for space remaining on disc.
-    - Use flat % to determine when not to backup?
-    - Only check space when resquashing?
+TODO List
+---------------------------------------
+In no particular order....
 
-- Implement options
-    -c <config file>    specify path to different config
+- Create dispatchers for actions
+- Create options parser (and determine options)
+- Implement rollback functions
+- Add debug statements
 
-- Add logging -- need to figure out how to handle color output
-
-- Filter output from commands
-    -mostly done, mksquashfs is still noisy
-
-- Reorganize resquash code. Reused bits need to all end up out of the backup func so
-  that its possible in the future for a user to resquash without having to do a backup
-  first.
-
-- Figure out a better way to detect mounts with mountpoint. Using grep is not acceptable
+probably more...
