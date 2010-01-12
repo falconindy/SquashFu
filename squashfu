@@ -29,14 +29,12 @@ mount_union_with_bins () {
 # Arguments: numbers of bins to be mounted (variable number)
 # Returns: 0 on successful mount, non-zero on failure
     debug "Requested to mount bins: $*"
-    if [[ -z $1 ]]; then
-        set "1"
-    fi
+
     # Mount first as rw, shift, and mount the rest ro
     branches="br=${BINS_DIR}/$1=rw:"; shift
     if [[ -n $1 ]]; then
         for bin in $*; do
-            branches="${branches}/bins/$bin=ro:"
+            branches="${branches}${BINS_DIR}/$bin=ro:"
         done
     fi
     branches="${branches}${BKUP_ROOT}/ro=ro"
@@ -106,9 +104,6 @@ create_new_bin () {
     # Update binventory with new bin name and timestamp
     debug "Updating $BINVENTORY, adding bin $1"
     echo "${1}:$(date +%s)" >> "$BINVENTORY"
-    info "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
-    cat "$BINVENTORY"
-    info "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
 
     # If write to bin list fails, remove diretory and exit
     if [[ $? -ne 0 ]]; then
@@ -211,7 +206,7 @@ create_new_incremental () {
     bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
 
     mount_squash
-    mount_union_with_bins ${BIN_ORDER[@]}
+    mount_union_with_bins ${bin_order[@]}
 
     # Die with error on mount, else start rsync
     if [[ $? -ne 0 ]]; then
