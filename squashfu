@@ -93,7 +93,7 @@ call_rsync () {
 #    debug ":   Includes: ${INCLUDES[@]}"
 #    debug ":   Excludes: ${EXCLUDES[@]}"
     debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
-    rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
+    /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
     return $?
 }
 
