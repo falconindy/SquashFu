@@ -5,17 +5,17 @@ source "$CONFIG"
 
 # Informational output w/ happy colors
 debug () {
-    if [[ $DEBUG ]]; then
-        echo -e '\033[1;33mDEBUG ::\033[1;m ' $*
+    if [[ "$DEBUG" == "true" ]]; then
+        printf '\033[1;33mDEBUG ::\033[1;m %s\n' "$*"
     fi
 }
 
 info () {
-    echo -e '\033[1;34m::\033[1;m ' $*
+    printf '\033[1;34m::\033[1;m %s\n' "$*"
 }
 
 die () {
-    echo -e '\033[1;31mFATAL ::\033[1;m ' $* >&2
+    printf '\033[1;31mFATAL ::\033[1;m %s\n' "$*" >&2
     exit 1
 }
 
@@ -299,25 +299,26 @@ action_rollback () {
 }
 
 action_report () {
-    # Enumerate bins, sort by order, provide size and convert timestamp to human readable
-
-    OLDIFS=$IFS
-    IFS='$:'
-
-    printf "%10s\t%30s\n" "Bin" "Date Created"
+    info "SquashFu Usage Report"
+    # Enumerate bins, sort date order, print human readable create date and size
+    OLDIFS=$IFS;IFS='$:'
+    printf "%10s\t%30s\t%10s\n" "Bin" "Date Created" "Size"
+    debug ----------------------------------------
     grep -vE "^[\t ]*$" "$BINVENTORY" | sort -r -k2 -n | while read bin stamp; do
-        printf "%10d\t%30s\n" $bin "$(date --rfc-3339=seconds --date="1970-01-01 $stamp sec GMT")"
+        printf "%10d\t%30s\t%10s\n" $bin \
+               "$(date --rfc-3339=seconds --date="1970-01-01 $stamp sec GMT")" \
+               "$(du -sh ${BINS_DIR}/$bin 2>/dev/null | awk '{print $1}')"
     done
-
     IFS=$OLDIFS
 
+    # TODO: Print totals
 }
 
 case $1 in
     "-B") action_backup ;;
-    "-R") shift; action_rollback $1 ;;
     "-Q") action_report ;;
+    "-R") shift; action_rollback $1 ;;
     "-U") unmount_all ;;
-    *) "Invalid action" ;;
+    *) echo "Invalid action!" ;;
 esac
 
