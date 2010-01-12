@@ -255,6 +255,9 @@ action_backup () {
         FIRST_RUN=1
     fi
 
+    # Cleanup mounts, in case user was doing a rollback and forgot to unmount (or error on last run)
+    unmount_all
+
     create_new_incremental
 
     check_for_resquash
@@ -270,7 +273,6 @@ action_backup () {
 }
 
 action_rollback () {
-    debug "IOU: one rollback";exit 0
     # Validate input with test cases
     if [[ -z $1 ]]; then
         die "The rollback action requires 1 additional argument."
@@ -281,20 +283,19 @@ action_rollback () {
     fi
 
     # Form a chronologically ordered list of bins, assuming the user didn't give bogus input
-    local bin_list=($(grep -vE "^[ ]*$" "$BINVENTORY" | sort -t: -n -k2 | cut -d: -f1))
+    local bin_list=($(grep -vE "^[ ]*$" "$BINVENTORY" | sort -t: -r -n -k2 | cut -d: -f1))
 
-    if [[ $1 -gt $number_of_bins ]]; then
-        die "Cannot rollback more than ${#number_of_bins[@]} backups"
+    if [[ $1 -gt ${#bin_list[@]} ]]; then
+        die "Cannot rollback more than ${#bin_list[@]} backups"
     fi
 
-    local num_to_mount=$[ ${#number_of_bins[@]} - $1 ]
+    local num_to_mount=$[ ${#bin_list[@]} - $1 ]
 
-    call mount_squash
+    mount_squash
 
-    call mount_union_with_bins ${bin_list[@]:0:$num_to_mount}
+    mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
 
     info "Union is now mounted at '${BKUP_ROOT}/rw'"
-
 }
 
 action_report () {
@@ -306,7 +307,7 @@ action_report () {
 
 case $1 in
     "-B") action_backup ;;
-    "-R") shift, action_rollback ;;
+    "-R") shift; action_rollback $1 ;;
     "-U") unmount_all ;;
     *) "Invalid action" ;;
 esac
