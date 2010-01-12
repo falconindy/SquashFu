@@ -1,57 +1,63 @@
 SquashFu - an alternative backup solution
   Inspired by http://forums.gentoo.org/viewtopic-p-4732709.html
 
-Requirements: aufs, aufs2-util, squashfs-tools, rsync
+Requirements: aufs, aufs2-util, squashfs-tools, rsync, bc
 
 Goal: To create a backup solution which provides incremental backups and compression,
       and which also provides an easy way to roll back.
 
 Design:
-  A directory structure is created as follows:
+  A directory structure is created as follows (with some terminology included):
       backup_root/
-       |- seed.sfs
-       |- ro/
-       |- rw/
-       |- bins/
-           |-1/   <-- Monday incremental
-           |-2/   <-- Tuesday incremental
-           |-3/   <-- Wednesday incremental
-           |-4/   <-- Thursday incremental
-           |-5/   <-- Friday incremental
-           |-6/   <-- Saturday incremental
-           |-7/   <-- Sunday incremental
+       |- seed.sfs  <-- squash, or seed
+       |- .bin.list <-- bin inventory list (or binventory)
+       |- ro/       <-- squash mount point
+       |- rw/       <-- union mount point
+       |- .bins/    <-- incrementals
+           |-1/
+           | .....
+           | .....
+           | .....
+           | .....
+           | .....
+           |-n/
 
-  seed.sfs is created from an initial backup and compressed using SquashFS, which i
-  is simply a filesystem which focuses on compression, but is read only. It's mounted,
+  seed.sfs is created from an initial backup and compressed using SquashFS, which is
+  simply a filesystem which focuses on compression, but is read only. It's mounted,
   using a loopback device, on ro/. Using aufs2, a union mount is formed by ro/ and each 
-  of the numbered bins, each corresponding to a day.
+  of the numbered bins, each corresponding to an incremental backup.
 
-  Wait, wat? What the heck IS a union mount? In simple terms, a union combines multiple
-  directories (which themselves could also be mount points) into a single resultant
-  mount point. Using our directory structure above as an example, each day (bin) is 
-  overlayed (in order, its important) on the base (seed.sfs) to create what appears 
-  to be an up to date backup in rw/. Skip the rest if you've had enough.
+  At the time of the backup, the next available bin is created and logged to an inventory
+  sheet with a timestamp. A union is created with all the available bins, mounted in
+  reverse chronological order on top of the seed (newest to oldest) on rw/. At this point,
+  the union represents the state of your files at the end of the last backup. The newest
+  branch is marked as read/write, and rsync is called. Because this top branch is the
+  only writable location in the union, the files rsync generates with the -u (update)
+  flag are placed into this branch. The backup finishes, and the union and seed are
+  unmounted.
 
-  At the time of the backup, the day is determined in order to prepare the union. If
-  today is Thursday, `date +%u` returns 4. In order for rsync to properly create our
-  incremental, we need to compare current data with the seed plus incrementals leading
-  up to Thursday, so we create our Aufs mount with the branches bins/4, bins/3, bins/2,
-  bins/1, and ro/ (in that order). When rsync now writes to the resulting union, aufs
-  happily receives the data into the first available (writable) branch of the union,
-  which is bins/4. The next day, the union mount is reformed adding the next bin...
+  At this point, Squashfu ensures compliance with the user's settings of MAX_BINS. If
+  the current number of used bins exceeds this value, a new seed is generated. The 
+  number of old incrementals merged into the new seed is determined by the difference
+  between MAX_BINS and MIN_BINS in the config file. In this way, you always have
+  MIN_BINS available to roll back to, but you're not forced to recompress your seed
+  at every backup -- an operation that may take a long time depending on how big
+  your backup source is.
 
-  If and when you want to roll back, the process is simple. Mount the seed plus
-  the necessary bins to increment the seed up to the day of interest.
+  If and when you want to roll back, execute Squashfu with the -R action, and supply
+  the number of bins you want to roll back. The bins are ordered chronologically,
+  and the oldest "number_of_bins - bins_to_rollback" are mounted on the union mount
+  point.
 
-Warnings:
-  It is imperative that you do NOT touch the individual branches. You can and will
-  cause irrepairable damage to the union, rendering your incrementals worthless.
-
+WARNING:
+  You should not, under any circumstances, add or remove files contained in the bins, 
+  nor should you alter your binventory's time stamps. Doing so can result in non-recoverable
+  damage to the integrity of the backups.
 
 Further reading:
-   http://en.wikipedia.org/wiki/Aufs
-   http://en.wikipedia.org/wiki/UnionFS
-   http://aufs.sourceforge.net/
-   http://en.wikipedia.org/wiki/SquashFS
-   http://en.wikipedia.org/wiki/Rsync
+  http://en.wikipedia.org/wiki/Aufs
+  http://en.wikipedia.org/wiki/UnionFS
+  http://aufs.sourceforge.net/
+  http://en.wikipedia.org/wiki/SquashFS
+  http://en.wikipedia.org/wiki/Rsync
 
