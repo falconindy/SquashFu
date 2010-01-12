@@ -67,7 +67,7 @@ Further reading:
 
 INSTALL
 -------------------------------------
--Put etc/squashfu in /etc/squashfu
+-Copy squashfu.conf as /etc/squashfu.conf
 -Make a backup directory somewhere where you want your files
 -READ OVER /etc/squashfu.conf and set it the way you want
 -Run manually with 'squashfu -B'
