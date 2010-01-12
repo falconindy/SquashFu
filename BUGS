@@ -1,7 +1,0 @@
-Known Bugs
-
-Filed: 1/11/2010
-Kernel: 2.6.32.3
-Bug: Aufs takes a long time to unmount.
-Fix: If using Ext4, mount with the 'nobarrier' option. No resolution known
-     at this time for other FS's.
