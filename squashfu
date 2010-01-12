@@ -188,7 +188,7 @@ create_new_squash () {
     mv "${SEED}.replace" "$SEED"
 
     # Delete old bins, and remove entry from binventory
-    for bin in $old_bins; do
+    for bin in ${old_bins[@]}; do
         rm -rf "${BINS_DIR}/$bin"
         sed -i "/^$bin:/d" "$BINVENTORY"
     done
@@ -254,7 +254,7 @@ action_backup () {
 
     # TODO: Report if requested
 
-    unmount_all
+    #unmount_all
 }
 
 action_rollback () {
