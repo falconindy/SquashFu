@@ -156,7 +156,7 @@ unmount_all () {
 check_for_resquash () {
 # Args: none
 # Returns: number of bins needing to be merged
-    local number_of_bins=$(wc -l "$BINVENTORY" | cut -d\  -f1)
+    local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
     debug "Found $number_of_bins bins"
 
     if [[ $number_of_bins -gt $MAX_BINS ]]; then
@@ -215,7 +215,7 @@ create_new_incremental () {
     create_new_bin $?
 
     # Determine the mount order via binventory
-    bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
+    local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
 
     mount_squash
     mount_union_with_bins ${bin_order[@]}
@@ -235,7 +235,7 @@ action_backup () {
 # Returns: none
 
     # Does the binventory exist? If not, prompt to make sure this is an initialization
-    FIRST_RUN=0
+    # FIRST_RUN=0
     if [[ ! -f "$BINVENTORY" || ! -f "$SEED" ]]; then
         read -p "Looks like this is your first time running SquashFu. Is this correct? (y/n) " ans
         while [[ true ]]; do
@@ -271,10 +271,29 @@ action_backup () {
 
 action_rollback () {
     debug "IOU: one rollback";exit 0
-    # Validate input
-    # call mount_squash
-    # call mount_union_with_bins
+    # Validate input with test cases
+    if [[ -z $1 ]]; then
+        die "The rollback action requires 1 additional argument."
+    fi
 
+    if [[ $1 -le 0 ]]; then
+        die "Please provide a positive number of backups to roll back"
+    fi
+
+    # Form a chronologically ordered list of bins, assuming the user didn't give bogus input
+    local bin_list=($(grep -vE "^[ ]*$" "$BINVENTORY" | sort -t: -n -k2 | cut -d: -f1))
+
+    if [[ $1 -gt $number_of_bins ]]; then
+        die "Cannot rollback more than ${#number_of_bins[@]} backups"
+    fi
+
+    local num_to_mount=$[ ${#number_of_bins[@]} - $1 ]
+
+    call mount_squash
+
+    call mount_union_with_bins ${bin_list[@]:0:$num_to_mount}
+
+    info "Union is now mounted at '${BKUP_ROOT}/rw'"
 
 }
 
