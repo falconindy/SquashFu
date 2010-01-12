@@ -21,19 +21,21 @@ mount_squash () {
 # Arguments: none
 # Returns: return code of mount command
     debug "Mounting Squash"
-    mount -t loop,ro "$SEED" "${BKUP_ROOT}/ro"
+    mount -o loop,ro "$SEED" "${BKUP_ROOT}/ro"
     return $?
 }
 
 mount_union_with_bins () {
 # Arguments: numbers of bins to be mounted (variable number)
 # Returns: 0 on successful mount, non-zero on failure
-    debug $*
+    debug "Requested to mount bins: $*"
     # Mount first as rw, shift, and mount the rest ro
     branches="br=${BINS_DIR}/$1=rw:"; shift
-    for bin in $*; do
-        branches="${branches}/bins/$bin=ro:"
-    done
+    if [[ -n $1 ]]; then
+        for bin in $*; do
+            branches="${branches}/bins/$bin=ro:"
+        done
+    fi
     branches="${branches}${BKUP_ROOT}/ro=ro"
 
     debug "mount -t aufs none "${BKUP_ROOT}/rw" -o udba=reval,$branches"
@@ -45,7 +47,9 @@ mount_union_with_bins () {
 get_next_available_bin () {
 # Arguments: none
 # Returns: Numeric value of the next unused bin
-    return $[ $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1) + 1 ]
+    next_bin=$[ $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1) + 1 ]
+    debug "Next available bin = $next_bin"
+    return $next_bin
 }
 
 sweep_bins () {
@@ -105,6 +109,7 @@ create_new_bin () {
         die "Error writing to '$BINVENTORY'"
     fi
 
+    return
 }
 
 # Unmounting functions
@@ -193,7 +198,7 @@ create_new_incremental () {
     create_new_bin $?
 
     # Determine the mount order via binventory
-    bin_order=($(sort -n -r -t:2 -k2 "$BINVENTORY" | cut -d: -f1))
+    bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
 
     mount_squash
     mount_union_with_bins ${BIN_ORDER[@]}
@@ -213,7 +218,7 @@ action_backup () {
 # Returns: none
 
     # Does the binventory exist? If not, prompt to make sure this is an initialization
-    FIRST_RUN=0
+    #FIRST_RUN=0
     if [[ ! -f "$BINVENTORY" || ! -f "$SEED" ]]; then
         read -p "Looks like this is your first time running SquashFu. Is this correct? (y/n) " ans
         while [[ true ]]; do
