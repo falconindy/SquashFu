@@ -19,6 +19,83 @@ die () {
     exit 1
 }
 
+check_for_resquash () {
+# Args: none
+# Returns: number of bins needing to be merged
+    local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
+    debug "Found $number_of_bins bins"
+
+    if [[ $number_of_bins -gt $MAX_BINS ]]; then
+        return $[ $number_of_bins - $MIN_BINS ]
+    else
+        return 0
+    fi
+}
+
+create_new_squash () {
+# Args: number of bins to be squashed (as determined by check_for_resquash), -1 on initial creation
+# Returns: 0 on success, non-zero on failure
+
+    # If making first seed, create it empty and return
+    if [[ $1 -eq -1 ]]; then
+        mksquashfs "$UNION_MOUNT" "$SEED" -b 65536
+        return $?
+    fi
+
+    # Determine oldest $1 bins and mount them with the current squash
+    local old_bins=($(sort -n -r -t: -k2 "$BINVENTORY" | tail -$1 | cut -d: -f1))
+
+    debug "old_bins declared as: ${old_bins[@]}"
+
+    mount_union_with_bins ${old_bins[@]}
+
+    # Create new squash with temp name
+    mksquashfs "$UNION_MOUNT" "$SEED.replace" -b 65536
+
+    # If the squash wasn't made correctly, we don't want to continue
+    if [[ $? -ne 0 ]]; then
+        return 1
+    fi
+
+    unmount_all
+
+    # Replace old squash
+    mv "${SEED}.replace" "$SEED"
+
+    # Delete old bins, and remove entry from binventory
+    for bin in ${old_bins[@]}; do
+        rm -rf "${BINS_DIR}/$bin"
+        sed -i "/^$bin:/d" "$BINVENTORY"
+    done
+
+    # Clean up $binventory
+    sweep_bins
+}
+
+create_new_incremental () {
+# Args: none
+# Returns: 0 on success, non-zero on error
+
+    # Make a new bin for this incremenetal
+    get_next_available_bin
+    create_new_bin $?
+
+    # Determine the mount order via binventory
+    local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
+
+    mount_squash
+    mount_union_with_bins ${bin_order[@]}
+
+    # Die with error on mount, else start rsync
+    if [[ $? -ne 0 ]]; then
+        return 1;
+    fi
+
+    call_rsync
+
+    return $?
+}
+
 mount_squash () {
 # Arguments: none
 # Returns: return code of mount command
@@ -153,89 +230,12 @@ unmount_all () {
     unmount_squash
 }
 
-check_for_resquash () {
-# Args: none
-# Returns: number of bins needing to be merged
-    local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
-    debug "Found $number_of_bins bins"
-
-    if [[ $number_of_bins -gt $MAX_BINS ]]; then
-        return $[ $number_of_bins - $MIN_BINS ]
-    else
-        return 0
-    fi
-}
-
-create_new_squash () {
-# Args: number of bins to be squashed (as determined by check_for_resquash), -1 on initial creation
-# Returns: 0 on success, non-zero on failure
-
-    # If making first seed, create it empty and return
-    if [[ $1 -eq -1 ]]; then
-        mksquashfs "$UNION_MOUNT" "$SEED" -b 65536
-        return $?
-    fi
-
-    # Determine oldest $1 bins and mount them with the current squash
-    local old_bins=($(sort -n -r -t: -k2 "$BINVENTORY" | tail -$1 | cut -d: -f1))
-
-    debug "old_bins declared as: ${old_bins[@]}"
-
-    mount_union_with_bins ${old_bins[@]}
-
-    # Create new squash with temp name
-    mksquashfs "$UNION_MOUNT" "$SEED.replace" -b 65536
-
-    # If the squash wasn't made correctly, we don't want to continue
-    if [[ $? -ne 0 ]]; then
-        return 1
-    fi
-
-    unmount_all
-
-    # Replace old squash
-    mv "${SEED}.replace" "$SEED"
-
-    # Delete old bins, and remove entry from binventory
-    for bin in ${old_bins[@]}; do
-        rm -rf "${BINS_DIR}/$bin"
-        sed -i "/^$bin:/d" "$BINVENTORY"
-    done
-
-    # Clean up $binventory
-    sweep_bins
-}
-
-create_new_incremental () {
-# Args: none
-# Returns: 0 on success, non-zero on error
-
-    # Make a new bin for this incremenetal
-    get_next_available_bin
-    create_new_bin $?
-
-    # Determine the mount order via binventory
-    local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
-
-    mount_squash
-    mount_union_with_bins ${bin_order[@]}
-
-    # Die with error on mount, else start rsync
-    if [[ $? -ne 0 ]]; then
-        return 1;
-    fi
-
-    call_rsync
-
-    return $?
-}
-
 usage () {
     info "SquashFu: a backup solution hewn out of boredom"
     cat <<HELP
 
 USAGE
-    squashfu <operation> [options]
+    squashfu <operation>
 
 OPERATIONS
   -B
@@ -254,6 +254,7 @@ OPERATIONS
   -U
     Unmount squash and union. Although SquashFu will always check and unmount as 
     necessary before an operation, this is provided as a safeguard.
+
 HELP
     exit 0
 }
@@ -355,6 +356,6 @@ case $1 in
     "-Q") action_report ;;
     "-R") shift; action_rollback $1 ;;
     "-U") unmount_all ;;
-    *) echo "Invalid action!" ;;
+    *) usage  ;;
 esac
 
