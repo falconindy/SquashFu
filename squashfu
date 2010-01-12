@@ -230,6 +230,34 @@ create_new_incremental () {
     return $?
 }
 
+usage () {
+    info "SquashFu: a backup solution hewn out of boredom"
+    cat <<HELP
+
+USAGE
+    squashfu <operation> [options]
+
+OPERATIONS
+  -B
+    Runs a regular backup, using the config file at /etc/squashfu, unless
+    otherwise specified with the -c option.
+
+  -Q
+    Displays the size of the seed, the incrementals, and the actual backup. If
+    you provide no additional options, a basic report will be given. Specifying
+    "full" will give more detail about individual bins.
+
+  -R <number of bins>
+    Rollback specified number of backups and mount union for browsing. The rolled
+    back data will be mounted at $UNION_MOUNT.
+
+  -U
+    Unmount squash and union. Although SquashFu will always check and unmount as 
+    necessary before an operation, this is provided as a safeguard.
+HELP
+    exit 0
+}
+
 action_backup () {
 # Args: options array squashfu was invoked with, shifted 1
 # Returns: none
@@ -290,6 +318,8 @@ action_rollback () {
     fi
 
     local num_to_mount=$[ ${#bin_list[@]} - $1 ]
+
+    mountpoint "$UNION_MOUNT" || mountpoint "$SQUASH_MOUNT" && unmount_all
 
     mount_squash
 
