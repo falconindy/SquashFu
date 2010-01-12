@@ -1,6 +1,8 @@
 SquashFu - a combination of fun, squashfs, joy, happiness, aufs and rsync
 ===================================================================
-WARNING: EXTREMELY ALPHA. MAY SET YOUR CAT ON FIRE.
+REQUIREMENTS: aufs, aufs2-util, squashfs-tools, rsync
+
+WARNING: EXTREMELY ALPHA (but approaching beta). MAY SET YOUR CAT ON FIRE.
 
 Mini FAQ:
 
@@ -21,7 +23,6 @@ What not to expect?
 
 If you don't care about your cat...
 ===================================================================
-Requirements: aufs, aufs2-util, squashfs-tools, rsync, bc
 
 Goal: To create a backup solution which provides incremental backups and compression,
       and which also provides an easy way to roll back.
