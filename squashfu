@@ -307,6 +307,7 @@ action_report () {
 case $1 in
     "-B") action_backup ;;
     "-R") shift, action_rollback ;;
+    "-U") unmount_all ;;
     *) "Invalid action" ;;
 esac
 
