@@ -299,15 +299,24 @@ action_rollback () {
 }
 
 action_report () {
-    debug "IOU: one status report"; exit 0
     # Enumerate bins, sort by order, provide size and convert timestamp to human readable
-    #   use $(date --date="1970-01-01 $TIMESTAMP sec GMT")
+
+    OLDIFS=$IFS
+    IFS='$:'
+
+    printf "%10s\t%30s\n" "Bin" "Date Created"
+    grep -vE "^[\t ]*$" "$BINVENTORY" | sort -r -k2 -n | while read bin stamp; do
+        printf "%10d\t%30s\n" $bin "$(date --rfc-3339=seconds --date="1970-01-01 $stamp sec GMT")"
+    done
+
+    IFS=$OLDIFS
 
 }
 
 case $1 in
     "-B") action_backup ;;
     "-R") shift; action_rollback $1 ;;
+    "-Q") action_report ;;
     "-U") unmount_all ;;
     *) "Invalid action" ;;
 esac
