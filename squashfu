@@ -304,5 +304,9 @@ action_report () {
 
 }
 
-action_backup
+case $1 in
+    "-B") action_backup ;;
+    "-R") shift, action_rollback ;;
+    *) "Invalid action" ;;
+esac
 
