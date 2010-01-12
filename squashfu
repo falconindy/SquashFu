@@ -190,4 +190,28 @@ create_new_incremental () {
     return $?
 }
 
+action_backup () {
+# Args:
+#
+    debug "IOU: one backup"; exit 0
+
+}
+
+action_rollback () {
+    debug "IOU: one rollback";exit 0
+    # Validate input
+    # call mount_squash
+    # call mount_union_with_bins
+
+
+}
+
+action_report () {
+    debug "IOU: one status report"; exit 0
+    # Enumerate bins, sort by order, provide size and convert timestamp to human readable
+    #   use $(date --date="1970-01-01 $TIMESTAMP sec GMT")
+
+}
+
+
 
