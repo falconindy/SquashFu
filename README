@@ -8,9 +8,9 @@ What currently works?
  - Regular incrementals. Execute with sudo and the -B option
  - Automatic merging incremenetals down to MIN_BINS once MAX_BINS has been exceeded
  - Rolling back. Execute with sudo, the -R option, and a number of backups to roll back
+ - Reporting, executed with -Q, shows approx. disk usage and bin information
 
 What's not yet included?
- - Reporting features to show usage and convert timestamps to useful dates
  - Options (don't expect a lot of them)
  - A lot of error catching. No telling what will happen if you SIGINT in the middle of
    a resquash, for example. Rsync takes care of itself, however.
@@ -107,6 +107,6 @@ In no particular order....
 
 - Create dispatchers for actions (mostly done)
 - Create options parser (and determine options)
-- Implement report functions
 - Limit access by checking for sudo
+- Fix output funcs for non-color scenario
 
