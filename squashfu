@@ -29,6 +29,9 @@ mount_union_with_bins () {
 # Arguments: numbers of bins to be mounted (variable number)
 # Returns: 0 on successful mount, non-zero on failure
     debug "Requested to mount bins: $*"
+    if [[ -z $1 ]]; then
+        set "1"
+    fi
     # Mount first as rw, shift, and mount the rest ro
     branches="br=${BINS_DIR}/$1=rw:"; shift
     if [[ -n $1 ]]; then
@@ -101,7 +104,11 @@ create_new_bin () {
     fi
 
     # Update binventory with new bin name and timestamp
-    echo "${1}:$(stat -c %u ${BINS_DIR}/$1)" >> "$BINVENTORY"
+    debug "Updating $BINVENTORY, adding bin $1"
+    echo "${1}:$(date +%s)" >> "$BINVENTORY"
+    info "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
+    cat "$BINVENTORY"
+    info "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*"
 
     # If write to bin list fails, remove diretory and exit
     if [[ $? -ne 0 ]]; then
@@ -118,7 +125,7 @@ unmount_union () {
 # Returns: return code from umount
     debug "Unmounting union"
     while [[ $(mountpoint "${BKUP_ROOT}/rw" | grep "is a mount") ]]; do
-        umount "${BKUP_ROOT}/rw" 2> /dev/null
+        umount "${BKUP_ROOT}/rw" 2>/dev/null
         sleep 1
     done
     return $?
@@ -128,7 +135,10 @@ unmount_squash () {
 # Args: none
 # Returns: return code from umount
     debug "Unmounting squash"
-    umount "${BKUP_ROOT}/ro"
+    while [[ $(mountpoint "${BKUP_ROOT}/ro" | grep "is a mount") ]]; do
+        umount "${BKUP_ROOT}/ro" 2>/dev/null
+        sleep 1
+    done
     return $?
 }
 
@@ -145,7 +155,7 @@ check_for_resquash () {
 # Args: none
 # Returns: number of bins needing to be merged
     local number_of_bins=$(wc -l "$BINVENTORY" | cut -d\  -f1)
-    debug $number_of_bins
+    debug "Found $number_of_bins bins"
 
     if [[ $number_of_bins -gt $MAX_BINS ]]; then
         return $[ $number_of_bins - $MIN_BINS ]
@@ -184,7 +194,7 @@ create_new_squash () {
 
     # Delete old bins, and remove entry from binventory
     for bin in $old_bins; do
-        rm -rf "${BKUP_ROOT}/bins/$bin"
+        rm -rf "${BINS_DIR}/$bin"
         sed -i "/^$bin:/d" "$BINVENTORY"
     done
 }
@@ -218,7 +228,7 @@ action_backup () {
 # Returns: none
 
     # Does the binventory exist? If not, prompt to make sure this is an initialization
-    #FIRST_RUN=0
+    FIRST_RUN=0
     if [[ ! -f "$BINVENTORY" || ! -f "$SEED" ]]; then
         read -p "Looks like this is your first time running SquashFu. Is this correct? (y/n) " ans
         while [[ true ]]; do
