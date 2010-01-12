@@ -91,7 +91,13 @@ create_new_incremental () {
         return 1;
     fi
 
-    call_rsync
+    INCLUDES=($(sed -n '/^<<INCLUDES$/,/^INCLUDES$/p' $CONFIG | grep -vE "^<*INCLUDES$"))
+    EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | \
+                grep -vE "^<*EXCLUDES$" | \
+                sed -n 's/\(.*\)/--exclude "\1"/p'))
+
+    debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
+    /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
 
     return $?
 }
@@ -152,26 +158,6 @@ sweep_bins () {
     debug "Leaving sweep_bins"
     ls "$BINS_DIR"
 
-}
-
-call_rsync () {
-# Arguments: none
-# Returns: return code from rsync
-
-    # Parse includes and excludes from heredocs in config
-    INCLUDES=($(sed -n '/^<<INCLUDES$/,/^INCLUDES$/p' $CONFIG | grep -vE "^<*INCLUDES$"))
-    EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | \
-                grep -vE "^<*EXCLUDES$" | \
-                sed -n 's/\(.*\)/--exclude "\1"/p'))
-
-    # rsync source to $BKUP_ROOT/rw
-#    debug "Rsync executing with:"
-#    debug ":   Options: ${RSYNC_OPTS[@]}"
-#    debug ":   Includes: ${INCLUDES[@]}"
-#    debug ":   Excludes: ${EXCLUDES[@]}"
-    debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
-    /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
-    return $?
 }
 
 create_new_bin () {
