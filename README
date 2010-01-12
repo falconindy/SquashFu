@@ -1,9 +1,22 @@
-SquashFu - an alternative backup solution
+SquashFu - a combination of fun, squashfs, joy, happiness, aufs and rsync
 ===================================================================
 WARNING: EXTREMELY ALPHA. MAY SET YOUR CAT ON FIRE.
 
+Mini FAQ:
+
 What currently works?
- - Regular backups. Execute as sudo ./squashfu and make damn sure your config is right
+ - Regular incrementals. Execute with sudo and make damn sure your config is right.
+ - Automatic merging incremenetals down to MIN_BINS once MAX_BINS has been exceeded
+
+What's not yet included?
+ - The ability to roll back
+ - Reporting features to show usage
+ - Options (don't expect a lot of them)
+ - A lot of error catching. No telling what will happen if you SIGINT in the middle of
+   a resquash, for example. Rsync takes care of itself, however.
+
+What not to expect?
+ - Elephants
 
 If you don't care about your cat...
 ===================================================================
