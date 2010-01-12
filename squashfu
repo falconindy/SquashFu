@@ -192,6 +192,9 @@ create_new_squash () {
         rm -rf "${BINS_DIR}/$bin"
         sed -i "/^$bin:/d" "$BINVENTORY"
     done
+
+    # Clean up $binventory
+    sweep_bins
 }
 
 create_new_incremental () {
