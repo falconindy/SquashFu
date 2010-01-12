@@ -2,6 +2,9 @@ SquashFu - an alternative backup solution
 ===================================================================
 WARNING: EXTREMELY ALPHA. MAY SET YOUR CAT ON FIRE.
 
+What currently works?
+ - Regular backups. Execute as sudo ./squashfu and make damn sure your config is right
+
 If you don't care about your cat...
 ===================================================================
 Requirements: aufs, aufs2-util, squashfs-tools, rsync, bc
@@ -88,10 +91,9 @@ TODO
 ---------------------------------------
 In no particular order....
 
-- Create dispatchers for actions
+- Create dispatchers for actions (mostly done)
 - Create options parser (and determine options)
 - Implement rollback functions
-- Add debug statements
-
-probably more...
+- Implement report functions
+- Limit access by checking for sudo
 
