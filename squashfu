@@ -254,7 +254,7 @@ action_backup () {
 
     # TODO: Report if requested
 
-    #unmount_all
+    unmount_all
 }
 
 action_rollback () {
