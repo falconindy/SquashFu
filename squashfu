@@ -5,7 +5,9 @@ source "$CONFIG"
 
 # Informational output w/ happy colors
 debug () {
-    [[ $DEBUG ]] && echo -e '\033[1;33mDEBUG ::\033[1;m ' $*
+    if [[ $DEBUG ]]; then
+        echo -e '\033[1;33mDEBUG ::\033[1;m ' $*
+    fi
 }
 
 info () {
@@ -56,11 +58,13 @@ get_next_available_bin () {
 sweep_bins () {
 # Arguments: none
 # Returns: none
+    debug "Entering sweep_bins"
     count=1
 
     # Make sure bins are numbered in order, clean up if not. In other words,
     # if we have 10 bins, make sure they're ordered 1 through 10.
-    for bin in "${BINS_DIR}/*"; do
+    ls "${BINS_DIR}" | while read bin; do
+    #for bin in "${BINS_DIR}/*"; do
         if [[ ! -d "${BINS_DIR}/$count" ]]; then
             high_bin=$(ls "${BINS_DIR}" | sort -n | tail -1)
             mv "${BINS_DIR}/$high_bin" "${BINS_DIR}/$count"
@@ -68,6 +72,8 @@ sweep_bins () {
         fi
         count=$[ $count + 1 ]
     done
+    debug "Leaving sweep_bins"
+    ls "$BINS_DIR"
 
 }
 
@@ -82,10 +88,11 @@ call_rsync () {
                 sed -n 's/\(.*\)/--exclude "\1"/p'))
 
     # rsync source to $BKUP_ROOT/rw
-    debug "Rsync executing with:"
-    debug ":   Options: ${RSYNC_OPTS[@]}"
-    debug ":   Includes: ${INCLUDES[@]}"
-    debug ":   Excludes: ${EXCLUDES[@]}"
+#    debug "Rsync executing with:"
+#    debug ":   Options: ${RSYNC_OPTS[@]}"
+#    debug ":   Includes: ${INCLUDES[@]}"
+#    debug ":   Excludes: ${EXCLUDES[@]}"
+    debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "${BKUP_ROOT}/rw""
     rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "${BKUP_ROOT}/rw"
     return $?
 }
@@ -171,6 +178,8 @@ create_new_squash () {
 
     # Determine oldest $1 bins and mount them with the current squash
     local old_bins=($(sort -n -r -t: -k2 "$BINVENTORY" | tail -$1 | cut -d: -f1))
+
+    debug "old_bins declared as: ${old_bins[@]}"
 
     mount_union_with_bins ${old_bins[@]}
 
