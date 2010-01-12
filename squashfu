@@ -40,7 +40,7 @@ mount_union_with_bins () {
 get_next_available_bin () {
 # Arguments: none
 # Returns: Numeric value of the next unused bin
-    return $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1)
+    return $[ $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1) + 1 ]
 }
 
 sweep_bins () {
