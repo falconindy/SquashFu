@@ -169,6 +169,10 @@ unmount_all () {
 # Args: none
 # Returns: none
 
+    if [[ $UID -ne 0 ]]; then
+        die "Must be root to unmount."
+    fi
+
     # Union MUST be unmounted first
     unmount_union
     unmount_squash
@@ -221,6 +225,10 @@ action_backup () {
 # Args: options array squashfu was invoked with, shifted 1
 # Returns: none
 
+    if [[ $UID -ne 0 ]]; then
+        die "Must be root to perform a backup"
+    fi
+
     # Does the binventory exist? If not, prompt to make sure this is an initialization
     # FIRST_RUN=0
     if [[ ! -f "$BINVENTORY" || ! -f "$SEED" ]]; then
@@ -260,6 +268,13 @@ action_backup () {
 }
 
 action_rollback () {
+# Args: number of backups to roll back
+# Returns: none
+
+    if [[ $UID -ne 0 ]]; then
+        die "Must be root to perform a rollback"
+    fi
+
     # Validate input with test cases
     if [[ -z $1 ]]; then
         die "The rollback action requires 1 additional argument."
@@ -310,7 +325,7 @@ action_report () {
 }
 
 usage () {
-    info "SquashFu: a backup solution hewn out of boredom"
+    info "SquashFu: Super Awesome Backup Express (Professional Edition)"
     cat <<HELP
 
 USAGE
