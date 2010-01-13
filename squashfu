@@ -78,13 +78,8 @@ create_new_incremental () {
         return 1;
     fi
 
-    # Includes should be pulled in directly from config and not need doctoring
-    #INCLUDES=($(sed -n '/^<<INCLUDES$/,/^INCLUDES$/p' $CONFIG | grep -vE "^<*INCLUDES$"))
-    #EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | \
-    #            grep -vE "^<*EXCLUDES$" | \
-    #            sed -n 's/\(.*\)/--exclude \1/p'))
+    # Includes are pulled in directly from config
     EXCLUDES=$(for excl in ${EXCLUDES[@]}; do echo --exclude $excl; done)
-    exit 1
 
     debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
     /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
