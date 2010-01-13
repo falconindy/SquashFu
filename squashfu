@@ -325,6 +325,7 @@ action_report () {
 
 usage () {
     info "SquashFu: Super Awesome Backup Express (Professional Edition)"
+    echo "version: $VER"
     cat <<HELP
 
 USAGE
