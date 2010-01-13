@@ -78,10 +78,13 @@ create_new_incremental () {
         return 1;
     fi
 
-    INCLUDES=($(sed -n '/^<<INCLUDES$/,/^INCLUDES$/p' $CONFIG | grep -vE "^<*INCLUDES$"))
-    EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | \
-                grep -vE "^<*EXCLUDES$" | \
-                sed -n 's/\(.*\)/--exclude \1/p'))
+    # Includes should be pulled in directly from config and not need doctoring
+    #INCLUDES=($(sed -n '/^<<INCLUDES$/,/^INCLUDES$/p' $CONFIG | grep -vE "^<*INCLUDES$"))
+    #EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | \
+    #            grep -vE "^<*EXCLUDES$" | \
+    #            sed -n 's/\(.*\)/--exclude \1/p'))
+    EXCLUDES=$(for excl in $EXCLUDES; do echo --exclude $excl; done)
+    exit 1
 
     debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
     /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
@@ -316,11 +319,9 @@ action_report () {
     IFS=$OLDIFS
     printf "%10s\t%25s\t%7s\n" "" "Incremental Total" "$(du -sh "$BINS_DIR" 2>/dev/null | awk '{print $1}')"
 
-    # TODO: Print totals
-    echo
-    printf "%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "$(du -h "$SEED" 2>/dev/null | awk '{print $1}')"
-    echo
-    printf "%10s\t%25s\t%7s\n" "" "Grand Total" \
+    # Print totals (not efficient -- reruns du on things we already ran it on)
+    printf "\n%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "$(du -h "$SEED" 2>/dev/null | awk '{print $1}')"
+    printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" \
            "$(du -csh "$BINS_DIR" "$SEED" 2>/dev/null | grep -E "total$" | awk '{print $1}')"
 }
 
