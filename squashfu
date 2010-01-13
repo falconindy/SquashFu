@@ -333,13 +333,10 @@ USAGE
 
 ACTIONS
   -B
-    Runs a regular backup, using the config file at /etc/squashfu, unless
-    otherwise specified with the -c option.
+    Runs a regular backup, using the config file at /etc/squashfu.
 
   -Q
-    Displays the size of the seed, the incrementals, and the actual backup. If
-    you provide no additional options, a basic report will be given. Specifying
-    "full" will give more detail about individual bins.
+    Displays the size of the seed, the incrementals, and totals.
 
   -R <number of bins>
     Rollback specified number of backups and mount union for browsing. The rolled
