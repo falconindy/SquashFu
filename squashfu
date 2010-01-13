@@ -309,7 +309,7 @@ action_report () {
     # Enumerate bins, sort date order, print human readable create date and size
     OLDIFS=$IFS;IFS='$:'
     printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
-    grep -vE "^[\t ]*$" "$BINVENTORY" | sort -r -k2 -n | while read bin stamp; do
+    grep -vE "^[\t ]*$" "$BINVENTORY" | sort -r -t: -k2 -n | while read bin stamp; do
         printf "%10d\t%25s\t%7s\n" $bin \
                "$(date --rfc-3339=seconds --date="1970-01-01 $stamp sec GMT")" \
                "$(du -sh ${BINS_DIR}/$bin 2>/dev/null | awk '{print $1}')"
