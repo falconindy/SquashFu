@@ -302,7 +302,10 @@ action_rollback () {
 
     mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
 
-    info "Union is now mounted at '$UNION_MOUNT'"
+    local rb_timestamp=$(grep -E "^${bin_list[@]:(-$num_to_mount):1}:" "$BINVENTORY" | cut -d: -f2)
+
+    info "You have rolled back to $(date --rfc-3339=seconds --date="1970-01-01 $rb_timestamp sec GMT")"
+    info "Your files can be found at '${UNION_MOUNT}'"
 }
 
 action_report () {
