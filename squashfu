@@ -81,7 +81,7 @@ create_new_incremental () {
     INCLUDES=($(sed -n '/^<<INCLUDES$/,/^INCLUDES$/p' $CONFIG | grep -vE "^<*INCLUDES$"))
     EXCLUDES=($(sed -n '/^<<EXCLUDES$/,/^EXCLUDES$/p' $CONFIG | \
                 grep -vE "^<*EXCLUDES$" | \
-                sed -n 's/\(.*\)/--exclude "\1"/p'))
+                sed -n 's/\(.*\)/--exclude \1/p'))
 
     debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
     /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
