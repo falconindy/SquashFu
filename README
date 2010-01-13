@@ -2,7 +2,10 @@ SquashFu - a combination of fun, squashfs, joy, happiness, aufs and rsync
 ===================================================================
 REQUIREMENTS: aufs, aufs2-util, squashfs-tools, rsync
 
-WARNING: EXTREMELY ALPHA (but approaching beta). MAY SET YOUR CAT ON FIRE.
+SquashFu is currently beta quality. While there may be some undiscovered bugs,
+the major components and structures in place will not change unless absolutely
+necessary. This means that backups created today will still be useful 6 months
+from now (if your config supports this).
 
 Mini FAQ:
 
@@ -14,8 +17,9 @@ What currently works?
 
 What's not yet included?
  - Options (don't expect a lot of them)
- - A lot of error catching. No telling what will happen if you SIGINT in the middle of
-   a resquash, for example. Rsync takes care of itself, however.
+ - A lot of error catching. While rsync takes care of itself and you'll suffer no
+   damage by aborting rsync in the middle of a backup, you could easily destroy
+   things by, for example, setting MIN_BINS greater than MAX_BINS.
 
 What not to expect?
  - Elephants
@@ -44,18 +48,17 @@ Design:
            |-n/
 
   seed.sfs is created from an initial backup and compressed using SquashFS, which is
-  simply a filesystem which focuses on compression, but is read only. It's mounted,
-  using a loopback device, on ro/. Using aufs2, a union mount is formed by ro/ and each 
-  of the numbered bins, each corresponding to an incremental backup.
+  simply a read only filesystem which focuses on compression. It's mounted, using a 
+  loopback device, on ro/.
 
-  At the time of the backup, the next available bin is created and logged to an inventory
-  sheet with a timestamp. A union is created with all the available bins, mounted in
-  reverse chronological order on top of the seed (newest to oldest) on rw/. At this point,
-  the union represents the state of your files at the end of the last backup. The newest
-  branch is marked as read/write, and rsync is called. Because this top branch is the
-  only writable location in the union, the files rsync generates with the -u (update)
-  flag are placed into this branch. The backup finishes, and the union and seed are
-  unmounted.
+  At the time of the backup, the next available bin is determined, created, and logged
+  to an inventory sheet with a timestamp. A union is created with all the available bins,
+  mounted in reverse chronological order on top of the seed (newest to oldest) on rw/.
+  At this point, the union represents the state of your files at the end of the last
+  backup. The newest branch is marked as read/write, and rsync is called. Because this
+  top branch is the only writable location in the union, the files rsync generates with
+  the -u (update) flag are placed into this branch. The backup finishes, and the union
+  and seed are unmounted.
 
   At this point, Squashfu ensures compliance with the user's settings of MAX_BINS. If
   the current number of used bins exceeds this value, a new seed is generated. The 
@@ -83,7 +86,7 @@ Further reading:
   http://en.wikipedia.org/wiki/Rsync
 
 
-INSTALL
+INSTALL (if you're not on Arch Linux)
 -------------------------------------
 -Copy squashfu.conf as /etc/squashfu.conf
 -Make a backup directory somewhere where you want your files
@@ -106,8 +109,9 @@ TODO
 ---------------------------------------
 In no particular order....
 
-- Create dispatchers for actions (mostly done)
 - Create options parser (and determine options)
-- Limit access by checking for sudo
+    - specify alternate config file
+    - report usage after backup completes
 - Fix output funcs for non-color scenario
-
+- Add semantic error checking for config
+- Create man page
