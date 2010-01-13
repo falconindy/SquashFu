@@ -330,7 +330,7 @@ usage () {
 USAGE
     squashfu <operation>
 
-OPERATIONS
+ACTIONS
   -B
     Runs a regular backup, using the config file at /etc/squashfu, unless
     otherwise specified with the -c option.
