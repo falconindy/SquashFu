@@ -102,7 +102,6 @@ create_new_bin () {
     fi
 
     # Update binventory with new bin name and timestamp
-    debug "Updating $BINVENTORY, adding bin $1"
     echo "${1}:$(date +%s)" >> "$BINVENTORY"
 
     # If write to bin list fails, remove diretory and exit
@@ -202,13 +201,12 @@ get_next_available_bin () {
 sweep_bins () {
 # Arguments: none
 # Returns: none
-    count=1
 
     info "Rotating chickens"
     # Make sure bins are numbered in order, clean up if not. In other words,
     # if we have 10 bins, make sure they're ordered 1 through 10.
+    count=1
     ls "${BINS_DIR}" | while read bin; do
-    #for bin in "${BINS_DIR}/*"; do
         if [[ ! -d "${BINS_DIR}/$count" ]]; then
             high_bin=$(ls "${BINS_DIR}" | sort -n | tail -1)
             debug "Sweeping bin $high_bin into bin $count"
@@ -228,7 +226,6 @@ action_backup () {
     fi
 
     # Does the binventory exist? If not, prompt to make sure this is an initialization
-    # FIRST_RUN=0
     if [[ ! -f "$BINVENTORY" || ! -f "$SEED" ]]; then
         read -p "Looks like this is your first time running SquashFu. Is this correct? (y/n) " ans
         while [[ true ]]; do
