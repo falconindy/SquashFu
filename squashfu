@@ -248,8 +248,8 @@ action_backup () {
     info "Backup requested at $(date --rfc-3339=seconds)"
 
     # Cleanup mounts, in case user was doing a rollback and forgot to unmount (or error on last run)
-    mountpoint "$UNION_MOUNT" && unmount_union
-    mountpoint "$SQUASH_MOUNT" && unmount_squash
+    mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
+    mountpoint "$SQUASH_MOUNT" &>/dev/null && unmount_squash
 
     create_new_incremental
 
@@ -293,7 +293,8 @@ action_rollback () {
 
     local num_to_mount=$[ ${#bin_list[@]} - $1 ]
 
-    mountpoint "$UNION_MOUNT" || mountpoint "$SQUASH_MOUNT" && unmount_all
+    mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
+    mountpoint "$SQUASH_MOUNT" &>/dev/null && unmount_squash
 
     mount_squash
 
