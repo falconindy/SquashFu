@@ -32,12 +32,11 @@ create_new_squash () {
     # Determine oldest $1 bins and mount them with the current squash
     local old_bins=($(sort -n -r -t: -k2 "$BINVENTORY" | tail -$1 | cut -d: -f1))
 
-    debug "old_bins declared as: ${old_bins[@]}"
-
     mount_union_with_bins ${old_bins[@]}
 
+    info "Merging old incrementals"
     # Create new squash with temp name
-    mksquashfs "$UNION_MOUNT" "$SEED.replace" -b 65536
+    mksquashfs "$UNION_MOUNT" "$SEED.replace" -b 65536 >/dev/null
 
     # If the squash wasn't made correctly, we don't want to continue
     if [[ $? -ne 0 ]]; then
@@ -49,6 +48,7 @@ create_new_squash () {
     # Replace old squash
     mv "${SEED}.replace" "$SEED"
 
+    info "Cleaning up inventory"
     # Delete old bins, and remove entry from binventory
     for bin in ${old_bins[@]}; do
         rm -rf "${BINS_DIR}/$bin"
@@ -63,6 +63,7 @@ create_new_incremental () {
 # Args: none
 # Returns: 0 on success, non-zero on error
 
+    info "Creating new bin"
     # Make a new bin for this incremenetal
     get_next_available_bin
     create_new_bin $?
@@ -70,6 +71,7 @@ create_new_incremental () {
     # Determine the mount order via binventory
     local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
 
+    info "Mounting squash and union"
     mount_squash
     mount_union_with_bins ${bin_order[@]}
 
@@ -82,6 +84,7 @@ create_new_incremental () {
     EXCLUDES=$(for excl in ${EXCLUDES[@]}; do echo --exclude $excl; done)
 
     debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
+    info "Creating new incremental"
     /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
 
     return $?
@@ -134,7 +137,6 @@ mount_union_with_bins () {
     fi
     branches="${branches}${SQUASH_MOUNT}=ro"
 
-    debug "mount -t aufs none "$UNION_MOUNT" -o udba=reval,$branches"
     mount -t aufs none "$UNION_MOUNT" -o udba=reval,$branches
 
     return $?
@@ -144,7 +146,7 @@ mount_union_with_bins () {
 unmount_union () {
 # Args: none
 # Returns: return code from umount
-    debug "Unmounting union"
+    info "Unmounting union"
     while [[ $(mountpoint "$UNION_MOUNT" | grep "is a mount") ]]; do
         umount "$UNION_MOUNT" 2>/dev/null
         sleep 1
@@ -155,7 +157,7 @@ unmount_union () {
 unmount_squash () {
 # Args: none
 # Returns: return code from umount
-    debug "Unmounting squash"
+    info "Unmounting squash"
     while [[ $(mountpoint "$SQUASH_MOUNT" | grep "is a mount") ]]; do
         umount "$SQUASH_MOUNT" 2>/dev/null
         sleep 1
@@ -200,23 +202,21 @@ get_next_available_bin () {
 sweep_bins () {
 # Arguments: none
 # Returns: none
-    debug "Entering sweep_bins"
     count=1
 
+    info "Rotating chickens"
     # Make sure bins are numbered in order, clean up if not. In other words,
     # if we have 10 bins, make sure they're ordered 1 through 10.
     ls "${BINS_DIR}" | while read bin; do
     #for bin in "${BINS_DIR}/*"; do
         if [[ ! -d "${BINS_DIR}/$count" ]]; then
             high_bin=$(ls "${BINS_DIR}" | sort -n | tail -1)
+            debug "Sweeping bin $high_bin into bin $count"
             mv "${BINS_DIR}/$high_bin" "${BINS_DIR}/$count"
             sed -i "/^$high_bin:/s/^$high_bin:/$count:/" "$BINVENTORY"
         fi
         count=$[ $count + 1 ]
     done
-    debug "Leaving sweep_bins"
-    ls "$BINS_DIR"
-
 }
 
 action_backup () {
@@ -248,8 +248,11 @@ action_backup () {
         FIRST_RUN=1
     fi
 
+    info "Backup requested at $(date --rfc-3339=seconds)"
+
     # Cleanup mounts, in case user was doing a rollback and forgot to unmount (or error on last run)
-    unmount_all
+    mountpoint "$UNION_MOUNT" && unmount_union
+    mountpoint "$SQUASH_MOUNT" && unmount_squash
 
     create_new_incremental
 
@@ -263,6 +266,8 @@ action_backup () {
     # TODO: Report if requested
 
     unmount_all
+
+    info "Backup completed at $(date --rfc-3339=seconds)"
 }
 
 action_rollback () {
