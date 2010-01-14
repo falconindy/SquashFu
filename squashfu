@@ -1,4 +1,5 @@
 #!/bin/bash
+VER="0.8dev-5e7d59"
 
 CONFIG="/etc/squashfu.conf"
 source "$CONFIG"
