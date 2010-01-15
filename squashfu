@@ -28,7 +28,13 @@ create_new_squash () {
     if [[ $1 -eq -1 ]]; then
         info "Creating seed (this may take a while)"
         mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 -e "${EXCLUDES[@]}" >/dev/null
-        return $?
+        if [[ $? -eq 0 ]];
+            mount_squash
+            info "Seed creation finished. It has been mounted at "$SQUASH_MOUNT" \
+                if you would like to make sure the proper files are included"
+        else
+            die "There was an error creating the initial squash."
+        fi
     fi
 
     # Determine oldest $1 bins and mount them with the current squash
