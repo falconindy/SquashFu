@@ -86,7 +86,7 @@ create_new_incremental () {
 
     debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
     info "Creating new incremental"
-    /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
+    /usr/bin/rsync ${RSYNC_OPTS[@]} "${INCLUDES[@]}" "${EXCLUDES[@]}" "$UNION_MOUNT"
 
     return $?
 }
