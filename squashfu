@@ -26,8 +26,8 @@ create_new_squash () {
 
     # If making first seed, create it directly from source
     if [[ $1 -eq -1 ]]; then
-        mksquashfs $(for incl in ${INCLUDES[@]};do echo "$incl";done) "$SEED" -b 65536 \
-        -ef $(for excl in ${EXCLUDES[@]};do echo "$excl";done) >/dev/null
+        info "Creating seed (this may take a while)"
+        mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 -e "${EXCLUDES[@]}" >/dev/null
         return $?
     fi
 
