@@ -24,9 +24,10 @@ create_new_squash () {
 # Args: number of bins to be squashed (as determined by check_for_resquash), -1 on initial creation
 # Returns: 0 on success, non-zero on failure
 
-    # If making first seed, create it empty and return
+    # If making first seed, create it directly from source
     if [[ $1 -eq -1 ]]; then
-        mksquashfs "$UNION_MOUNT" "$SEED" -b 65536 >/dev/null
+        mksquashfs $(for incl in ${INCLUDES[@]};do echo "$incl";done) "$SEED" -b 65536 \
+        -ef $(for excl in ${EXCLUDES[@]};do echo "$excl";done) >/dev/null
         return $?
     fi
 
@@ -243,7 +244,7 @@ action_backup () {
         mkdir -p "${BINS_DIR}"
         touch "$BINVENTORY"
         create_new_squash -1
-        FIRST_RUN=1
+        exit 0
     fi
 
     info "Backup requested at $(date --rfc-3339=seconds)"
@@ -257,8 +258,6 @@ action_backup () {
     check_for_resquash
     if [[ val=$? -gt 0 ]]; then
         create_new_squash $val
-    elif [[ $FIRST_RUN -eq 1 ]]; then
-        create_new_squash 1
     fi
 
     # TODO: Report if requested
