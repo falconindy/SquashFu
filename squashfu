@@ -32,6 +32,7 @@ create_new_squash () {
             mount_squash
             info "Seed creation finished. It has been mounted at "$SQUASH_MOUNT" \
                 if you would like to make sure the proper files are included"
+            return 0;
         else
             die "There was an error creating the initial squash."
         fi
