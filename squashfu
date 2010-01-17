@@ -21,7 +21,7 @@ die () {
 }
 
 create_new_squash () {
-# Args: number of bins to be squashed (as determined by check_for_resquash), -1 on initial creation
+# Args: number of bins to be squashed, -1 on initial creation
 # Returns: 0 on success, non-zero on failure
 
     # If making first seed, create it directly from source
@@ -332,6 +332,25 @@ action_report () {
            "$(du -csh "$BINS_DIR" "$SEED" 2>/dev/null | grep -E "total$" | awk '{print $1}')"
 }
 
+action_resquash_now () {
+# Args: none
+# Returns: none
+
+    if [[ $UID -ne 0 ]]; then
+        die "Must be root to perform a resquash"
+    fi
+
+    info "Voluntary resquash requested"
+
+    local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
+    if [[ $number_of_bins -le $MIN_BINS ]]; then
+        die "Nothing to do. Current backups do not exceed MIN_BINS value."
+    else
+        create_new_squash $[ $number_of_bins - $MIN_BINS ]
+    fi
+
+}
+
 usage () {
     info "SquashFu: Super Awesome Backup Express (Professional Edition)"
     echo "version: $VER"
@@ -343,6 +362,10 @@ USAGE
 ACTIONS
   -B
     Runs a regular backup, using the config file at /etc/squashfu.
+
+  -C
+    Create a new squash by merging old bins. This will still leave you
+    with $MIN_BINS backups (as per the MIN_BINS setting in your config.
 
   -Q
     Displays the size of the seed, the incrementals, and totals.
@@ -361,6 +384,7 @@ HELP
 
 case $1 in
     "-B") action_backup ;;
+    "-C") action_resquash_now ;;
     "-Q") action_report ;;
     "-R") shift; action_rollback $1 ;;
     "-U") unmount_all ;;
