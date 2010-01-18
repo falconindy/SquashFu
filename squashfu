@@ -79,8 +79,7 @@ create_new_incremental () {
     # Determine the mount order via binventory
     local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
 
-    info "Mounting squash and union"
-    mount_squash
+    mountpoint "${SQUASH_MOUNT}" &>/dev/null || mount_squash
     mount_union_with_bins ${bin_order[@]}
 
     # Die with error on mount, else start rsync
@@ -133,6 +132,7 @@ mount_squash () {
 mount_union_with_bins () {
 # Arguments: numbers of bins to be mounted (variable number)
 # Returns: 0 on successful mount, non-zero on failure
+    info "Mounting union"
     debug "Requested to mount bins: $*"
 
     # Mount first as rw, shift, and mount the rest ro
@@ -255,9 +255,8 @@ action_backup () {
 
     info "Backup requested at $(date --rfc-3339=seconds)"
 
-    # Cleanup mounts, in case user was doing a rollback and forgot to unmount (or error on last run)
+    # Cleanup union, in case user was doing a rollback and forgot to unmount (or error on last run)
     mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
-    mountpoint "$SQUASH_MOUNT" &>/dev/null && unmount_squash
 
     create_new_incremental
 
@@ -300,9 +299,7 @@ action_rollback () {
     local num_to_mount=$[ ${#bin_list[@]} - $1 ]
 
     mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
-    mountpoint "$SQUASH_MOUNT" &>/dev/null && unmount_squash
-
-    mount_squash
+    mountpoint "$SQUASH_MOUNT" &>/dev/null || mount_squash
 
     mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
 
