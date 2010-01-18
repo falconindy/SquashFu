@@ -347,6 +347,7 @@ action_resquash_now () {
         create_new_squash $[ $number_of_bins - $MIN_BINS ]
     fi
 
+    exit $?
 }
 
 usage () {
