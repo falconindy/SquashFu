@@ -260,6 +260,10 @@ action_backup () {
 
     create_new_incremental
 
+    if [[ $? -gt 0 && $DEL_BIN_ON_FAIL == "true" ]]; then
+         # Remove the physical bin and edit binlist
+    fi
+
     check_for_resquash
     if [[ val=$? -gt 0 ]]; then
         create_new_squash $val

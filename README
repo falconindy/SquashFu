@@ -118,3 +118,4 @@ In no particular order....
 - Fix output funcs for non-color scenario
 - Add semantic error checking for config
 - Create man page
+- Make config more helpful by providing possible values, not just verbiage
