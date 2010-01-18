@@ -320,7 +320,9 @@ action_report () {
     OLDIFS=$IFS;IFS=${IFS}:
     # Collect all data into an array to 'preload' it. Index 0 is the entire
     # folder. The following indicies correspond to the bin number of that index
+    printf "%30s\r" "          .: Loading :."
     DATA=($(du -sh ${BINS_DIR} ${BINS_DIR}/* 2>/dev/null | awk '{print $1}'))
+    printf "%30s\r" "                       "
 
     printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
     grep -vE "^[\t ]*$" "$BINVENTORY" | sort -r -t: -k2 -n | while read bin stamp; do
