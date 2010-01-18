@@ -1,6 +1,6 @@
 SquashFu - a combination of fun, squashfs, joy, happiness, aufs and rsync
 ===================================================================
-REQUIREMENTS: aufs, aufs2-util, squashfs-tools, rsync
+REQUIREMENTS: bash, aufs, aufs2-util, squashfs-tools, rsync
 
 SquashFu is currently beta quality. While there may be some undiscovered bugs,
 the major components and structures in place will not change unless absolutely
@@ -9,6 +9,9 @@ from now (if your config supports this).
 
 Mini FAQ:
 
+Why?
+ - Why not?
+
 What currently works?
  - Regular incrementals. Execute with sudo and the -B option
  - Automatic merging incremenetals down to MIN_BINS once MAX_BINS has been exceeded
@@ -16,7 +19,6 @@ What currently works?
  - Reporting, executed with -Q, shows approx. disk usage and bin information
 
 What's not yet included?
- - Options (don't expect a lot of them)
  - A lot of error catching. While rsync takes care of itself and you'll suffer no
    damage by aborting rsync in the middle of a backup, you could easily destroy
    things by, for example, setting MIN_BINS greater than MAX_BINS.
@@ -25,7 +27,6 @@ What not to expect?
  - Elephants
  - Salvation
 
-If you don't care about your cat...
 ===================================================================
 
 Goal: To create a backup solution which provides incremental backups and compression,
@@ -109,9 +110,6 @@ TODO
 ---------------------------------------
 In no particular order....
 
-- Create options parser (and determine options)
-    - specify alternate config file
-    - report usage after backup completes
 - Fix output funcs for non-color scenario
 - Add semantic error checking for config
 - Create man page
