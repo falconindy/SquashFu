@@ -367,7 +367,7 @@ ACTIONS
 
   -C
     Create a new squash by merging old bins. This will still leave you
-    with $MIN_BINS backups (as per the MIN_BINS setting in your config.
+    with $MIN_BINS backups (as per the MIN_BINS setting in your config).
 
   -Q
     Displays the size of the seed, the incrementals, and totals.
