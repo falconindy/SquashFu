@@ -319,13 +319,15 @@ action_report () {
 
     printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
     grep -vE "^[\t ]*$" "$BINVENTORY" | sort -r -t: -k2 -n | while read bin stamp; do
-        printf "%10d\t%25s\t%7s\n" "$bin" "$(date --rfc-3339=seconds --date="1970-01-01 $stamp sec GMT")" "${DATA[$bin]}"
+        printf "%10d\t%25s\t%7s\n" "$bin" \
+               "$(date --rfc-3339=seconds --date="1970-01-01 $stamp sec GMT")" \
+               "${DATA[$bin]}"
     done
     IFS=$OLDIFS
     printf "%10s\t%25s\t%7s\n" "" "Incremental Total" "${DATA[0]}"
 
     # Print totals (not efficient -- reruns du on things we already ran it on)
-    printf "\n%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "${DATA[0]}"
+    printf "\n%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "$(du -h "${SEED}" | awk '{print $1}')"
     printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" \
     "$(du -csh "$BINS_DIR" "$SEED" 2>/dev/null | grep -E "total$" | awk '{print $1}')"
 }
