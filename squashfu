@@ -67,36 +67,6 @@ create_new_squash () {
     sweep_bins
 }
 
-create_new_incremental () {
-# Args: none
-# Returns: 0 on success, non-zero on error
-
-    info "Creating new bin"
-    # Make a new bin for this incremenetal
-    get_next_available_bin
-    create_new_bin $?
-
-    # Determine the mount order via binventory
-    local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
-
-    mountpoint "${SQUASH_MOUNT}" &>/dev/null || mount_squash
-    mount_union_with_bins ${bin_order[@]}
-
-    # Die with error on mount, else start rsync
-    if [[ $? -ne 0 ]]; then
-        return 1;
-    fi
-
-    # Includes are pulled in directly from config
-    EXCLUDES=$(for excl in ${EXCLUDES[@]}; do echo --exclude $excl; done)
-
-    debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
-    info "Creating new incremental"
-    /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
-
-    return $?
-}
-
 create_new_bin () {
 # Arguments: 1, the number of the bin to create
 # Returns: 0 on success, non-zero on error
@@ -258,10 +228,33 @@ action_backup () {
     # Cleanup union, in case user was doing a rollback and forgot to unmount (or error on last run)
     mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
 
-    create_new_incremental
+    info "Creating new bin"
+    # Make a new bin for this incremenetal
+    get_next_available_bin
+    create_new_bin $?
+
+    # Determine the mount order via binventory
+    local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
+
+    mountpoint "${SQUASH_MOUNT}" &>/dev/null || mount_squash
+    mount_union_with_bins ${bin_order[@]}
+
+    # Die with error on mount, else start rsync
+    if [[ $? -ne 0 ]]; then
+        return 1;
+    fi
+
+    # Includes are pulled in directly from config
+    EXCLUDES=$(for excl in ${EXCLUDES[@]}; do echo --exclude $excl; done)
+
+    debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
+    info "Creating new incremental"
+    /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
 
     if [[ $? -gt 0 && $DEL_BIN_ON_FAIL == "true" ]]; then
          # Remove the physical bin and edit binlist
+         # set next_bin to be local
+         # use return val from finding the next bin
     fi
 
     check_for_resquash
