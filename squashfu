@@ -358,7 +358,7 @@ usage () {
     cat <<HELP
 
 USAGE
-    squashfu <operation>
+    squashfu <action>
 
 ACTIONS
   -B
@@ -383,13 +383,38 @@ HELP
     exit 0
 }
 
-case $1 in
-    "-B") action=backup ;;
-    "-C") action=resquash_now ;;
-    "-Q") action=report ;;
-    "-R") shift; action=rollback $1 ;;
-    "-U") unmount_all ;;
-    *) usage  ;;
-esac
+[[ -z $1 ]] && ( usage; exit 1; )
+
+while getopts :BCQR:U opt; do
+    case $opt in
+        B)
+            action=backup
+            ;;
+        C)
+            action=resquash_now
+            ;;
+        Q)
+            action=report
+            ;;
+        R)
+            action="rollback $OPTARG"
+            ;;
+        U)
+            unmount_all
+            exit 0
+            ;;
+        c)
+            [[ -f $OPTARG ]] && source $OPTARG
+            ;;
+        \:)
+            echo "Argument missing from -$OPTARG"
+            usage ;;
+        \?)
+            echo "Unrecognized option -$OPTARG"
+            usage ;;
+    esac >&2
+done
+
+[[ -z $action ]] && ( usage; exit 1; )
 
 action_$action
