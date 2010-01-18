@@ -387,6 +387,10 @@ ACTIONS
     Create a new squash by merging old bins. This will still leave you
     with $MIN_BINS backups (as per the MIN_BINS setting in your config).
 
+  -D <bin number>
+    Delete an incremental backup. This is done interactively and you will have
+    a chance to confirm before any files are deleted.
+
   -Q
     Displays the size of the seed, the incrementals, and totals.
 
@@ -410,12 +414,14 @@ HELP
 
 [[ -z $1 ]] && ( usage; exit 1; )
 
-while getopts :BCQR:Uc: opt; do
+while getopts :BCD:QR:Uc: opt; do
     case $opt in
         B)
             action=backup ;;
         C)
             action=resquash_now ;;
+        D)
+            action="remove_bin $OPTARG" ;;
         Q)
             action=report ;;
         R)
