@@ -383,7 +383,7 @@ ACTIONS
     Unmount squash and union. Although SquashFu will always check and unmount as 
     necessary before an operation, this is provided as a safeguard.
 
- OPTIONS
+OPTIONS
   -c <path_to_config>
     Specify an alternate config file. Options defined will override options in
     the default config. If you specify alternate locations via a supplmenetal config,
