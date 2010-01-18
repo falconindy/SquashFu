@@ -270,6 +270,14 @@ action_backup () {
 
 action_remove_bin () {
     # check if the bin exists both in the binventory AND in the bins directory
+    if [[  $UID -eq 0 ]]; then
+        die "Must be root to remove a backup"
+    fi
+
+    if [[ ! -w "$BINVENTORY" ]]; then
+        die "Error writing to ${BINVENTORY}"
+    fi
+
     if [[ -z $2 && grep -E "^$1:" && -d "${BINS_DIR}/$1" ]]; then
         echo "Are you SURE you want to remove this bin?"
         printf "Bin ID: %s\nDate Created: %s\nSize: %s\n" \
