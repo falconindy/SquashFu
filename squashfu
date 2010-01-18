@@ -253,9 +253,7 @@ action_backup () {
     /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
 
     if [[ $? -gt 0 && $DEL_BIN_ON_FAIL == "true" ]]; then
-        # rsync failed and user doesn't want the bin kept
-        sed -n "/^$new_bin:[0-9]*/d"
-        rm -rf ${BINS_DIR}/$new_bin
+        action_remove_bin $new_bin override
     fi
 
     check_for_resquash
@@ -268,6 +266,25 @@ action_backup () {
     unmount_all
 
     info "Backup completed at $(date --rfc-3339=seconds)"
+}
+
+action_remove_bin () {
+    # check if the bin exists both in the binventory AND in the bins directory
+    if [[ -z $2 && grep -E "^$1:" && -d "${BINS_DIR}/$1" ]]; then
+        echo "Are you SURE you want to remove this bin?"
+        printf "Bin ID: %s\nDate Created: %s\nSize: %s\n" \
+                "$1" \
+                "$(date --rfc-3339=seconds --date="1970-01-01 $rb_timestamp sec GMT")" \
+                "$(du -sh "${BINS_DIR}/$1" 2>/dev/null)"
+
+        read -p "Confirm deletion (y/N)" confirm
+        if [[ $confirm != "y" ]]; then
+            exit 1
+        fi
+    fi
+
+    sed -n "/^$new_bin:[0-9]*/d"
+    rm -rf ${BINS_DIR}/$new_bin
 }
 
 action_rollback () {
