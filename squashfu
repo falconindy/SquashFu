@@ -316,7 +316,7 @@ action_report () {
     info "SquashFu Usage Report"
     echo
     # Enumerate bins, sort date order, print human readable create date and size
-    OLDIFS=$IFS;IFS='$:'
+    OLDIFS=$IFS;IFS=${IFS}:
     printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
     grep -vE "^[\t ]*$" "$BINVENTORY" | sort -r -t: -k2 -n | while read bin stamp; do
         printf "%10d\t%25s\t%7s\n" $bin \
