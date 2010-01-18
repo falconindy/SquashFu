@@ -352,6 +352,10 @@ action_resquash_now () {
     exit $?
 }
 
+action_unmount () {
+    unmount_all
+}
+
 usage () {
     info "SquashFu: Super Awesome Backup Express (Professional Edition)"
     echo "version: $VER"
@@ -400,8 +404,7 @@ while getopts :BCQR:U opt; do
             action="rollback $OPTARG"
             ;;
         U)
-            unmount_all
-            exit 0
+            action=unmount
             ;;
         c)
             [[ -f $OPTARG ]] && source $OPTARG
