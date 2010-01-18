@@ -1,5 +1,5 @@
 #!/bin/bash
-VER="0.8dev-5e7d59"
+VER="0.9-beta"
 
 CONFIG="/etc/squashfu.conf"
 source "$CONFIG"
