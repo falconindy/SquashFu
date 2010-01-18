@@ -384,11 +384,12 @@ HELP
 }
 
 case $1 in
-    "-B") action_backup ;;
-    "-C") action_resquash_now ;;
-    "-Q") action_report ;;
-    "-R") shift; action_rollback $1 ;;
+    "-B") action=backup ;;
+    "-C") action=resquash_now ;;
+    "-Q") action=report ;;
+    "-R") shift; action=rollback $1 ;;
     "-U") unmount_all ;;
     *) usage  ;;
 esac
 
+action_$action
