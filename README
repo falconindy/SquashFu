@@ -109,8 +109,6 @@ TODO
 ---------------------------------------
 In no particular order....
 
-- Improve report output
-     - Frontload CPU work to print all at once
 - Slim down calls to unmount seed. No harm in leaving it mounted mid-run.
 - Create options parser (and determine options)
     - specify alternate config file
