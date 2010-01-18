@@ -105,6 +105,11 @@ KNOWN BUGS
     Fix:   If using Ext4, mount with the 'nobarrier' option. No resolution known
            at this time for other FS's.
 
+1/17/2010
+    Issue: Paths with special chars or whitespace as includes or excludes are
+           not properly handled when passed to rsync.
+    Fix:   If you MUST be ridiculous, escape (not quote) the spaces and/or other
+           special characters.
 
 TODO
 ---------------------------------------
