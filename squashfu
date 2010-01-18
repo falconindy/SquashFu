@@ -285,10 +285,6 @@ action_rollback () {
         die "The rollback action requires 1 additional argument."
     fi
 
-#    if [[ $1 -le 0 ]]; then
-#        die "Please provide a positive number of backups to roll back"
-#    fi
-
     # Form a chronologically ordered list of bins, assuming the user didn't give bogus input
     local bin_list=($(grep -vE "^[ ]*$" "$BINVENTORY" | sort -t: -r -n -k2 | cut -d: -f1))
 
