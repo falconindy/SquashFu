@@ -231,7 +231,8 @@ action_backup () {
     info "Creating new bin"
     # Make a new bin for this incremenetal
     get_next_available_bin
-    create_new_bin $?
+    local new_bin=$?
+    create_new_bin $new_bin
 
     # Determine the mount order via binventory
     local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
@@ -252,9 +253,9 @@ action_backup () {
     /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
 
     if [[ $? -gt 0 && $DEL_BIN_ON_FAIL == "true" ]]; then
-         # Remove the physical bin and edit binlist
-         # set next_bin to be local
-         # use return val from finding the next bin
+        # rsync failed and user doesn't want the bin kept
+        sed -n "/^$new_bin:[0-9]*/d"
+        rm -rf ${BINS_DIR}/$new_bin
     fi
 
     check_for_resquash
