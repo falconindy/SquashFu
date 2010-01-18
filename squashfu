@@ -362,7 +362,7 @@ usage () {
     cat <<HELP
 
 USAGE
-    squashfu <action>
+    squashfu <action> [options]
 
 ACTIONS
   -B
@@ -383,13 +383,19 @@ ACTIONS
     Unmount squash and union. Although SquashFu will always check and unmount as 
     necessary before an operation, this is provided as a safeguard.
 
+ OPTIONS
+  -c <path_to_config>
+    Specify an alternate config file. Options defined will override options in
+    the default config. If you specify alternate locations via a supplmenetal config,
+    you will need to provide the config for all actions
+
 HELP
     exit 0
 }
 
 [[ -z $1 ]] && ( usage; exit 1; )
 
-while getopts :BCQR:U opt; do
+while getopts :BCQR:Uc: opt; do
     case $opt in
         B)
             action=backup
