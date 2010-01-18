@@ -16,7 +16,7 @@ info () {
 }
 
 die () {
-    printf '\033[1;31mFATAL ::\033[1;m %s\n' "$*" >&2
+    printf '\033[1;31m::\033[1;m %s\n' "$*" >&2
     exit 1
 }
 
@@ -398,28 +398,22 @@ HELP
 while getopts :BCQR:Uc: opt; do
     case $opt in
         B)
-            action=backup
-            ;;
+            action=backup ;;
         C)
-            action=resquash_now
-            ;;
+            action=resquash_now ;;
         Q)
-            action=report
-            ;;
+            action=report ;;
         R)
-            action="rollback $OPTARG"
-            ;;
+            action="rollback $OPTARG" ;;
         U)
-            action=unmount
-            ;;
+            action=unmount ;;
         c)
-            [[ -f $OPTARG ]] && source $OPTARG
-            ;;
+            [[ -f $OPTARG ]] && source $OPTARG ;;
         \:)
-            echo "Argument missing from -$OPTARG"
+            die "Argument missing from -$OPTARG"
             usage ;;
         \?)
-            echo "Unrecognized option -$OPTARG"
+            die "Unrecognized option -$OPTARG"
             usage ;;
     esac >&2
 done
