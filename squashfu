@@ -281,10 +281,10 @@ action_remove_bin () {
     if [[ -z $2 && $(grep -E "^$1:" ${BINVENTORY}) && -d "${BINS_DIR}/$1" ]]; then
         echo "Are you SURE you want to remove this bin?"
         local timestamp=$(sed -n "/$1/s/^[0-9]*://" "${BINVENTORY}")
-        printf "\t%10s %s\n\t%10s: %s\n\t%10s: %s\n" \
+        printf "\t%15s %s\n\t%15s %s\n\t%15s %s\n" \
                 "Bin:" "$1" \
                 "Date Created:" "$(date --rfc-3339=seconds --date="1970-01-01 $timestamp sec GMT")" \
-                "Size:" "$(du -sh "${BINS_DIR}/$1" 2>/dev/null)"
+                "Size:" "$(du -sh "${BINS_DIR}/$1" 2>/dev/null | awk '{print $1}')"
 
         read -p "Confirm deletion (y/N)" confirm
         if [[ $confirm != "y" ]]; then
