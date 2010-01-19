@@ -293,6 +293,9 @@ action_remove_bin () {
 
     sed -n "/^$new_bin:[0-9]*/d"
     rm -rf ${BINS_DIR}/$new_bin
+
+    # tidy up!
+    sweep_bins
 }
 
 action_rollback () {
