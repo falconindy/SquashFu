@@ -293,9 +293,9 @@ action_remove_bin () {
         fi
     fi
 
-    info "Deleting bin $new_bin"
+    info "Deleting bin $1"
     sed -n "/^$new_bin:[0-9]*/d" "${BINVENTORY}"
-    rm -rf ${BINS_DIR}/$new_bin
+    rm -rf ${BINS_DIR}/$1
 
     # tidy up!
     sweep_bins
