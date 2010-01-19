@@ -280,9 +280,10 @@ action_remove_bin () {
 
     if [[ -z $2 && $(grep -E "^$1:" ${BINVENTORY}) && -d "${BINS_DIR}/$1" ]]; then
         echo "Are you SURE you want to remove this bin?"
-        printf "\tBin ID: %s\n\tDate Created: %s\n\tSize: %s\n" \
+        local timestamp=$(sed -n 's/^[0-9]*://' "${BINVENTORY}")
+        printf "\tBin ID: %20s\n\tDate Created: %20s\n\tSize: %20s\n" \
                 "$1" \
-                "$(date --rfc-3339=seconds --date="1970-01-01 $rb_timestamp sec GMT")" \
+                "$(date --rfc-3339=seconds --date="1970-01-01 $timestamp sec GMT")" \
                 "$(du -sh "${BINS_DIR}/$1" 2>/dev/null)"
 
         read -p "Confirm deletion (y/N)" confirm
@@ -292,6 +293,7 @@ action_remove_bin () {
         fi
     fi
 
+    info "Deleting bin $new_bin"
     sed -n "/^$new_bin:[0-9]*/d"
     rm -rf ${BINS_DIR}/$new_bin
 
@@ -421,7 +423,7 @@ OPTIONS
     you will need to provide the config for all actions
 
 HELP
-    exit 0
+    exit 1
 }
 
 [[ -z $1 ]] && ( usage; exit 1; )
@@ -451,6 +453,4 @@ while getopts :BCD:QR:Uc: opt; do
     esac >&2
 done
 
-[[ -z $action ]] && ( usage; exit 1; )
-
-action_$action
+[[ -n $action ]] && action_$action
