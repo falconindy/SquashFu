@@ -257,6 +257,7 @@ action_backup () {
     /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
 
     if [[ $? -gt 0 && $DEL_BIN_ON_FAIL == "true" ]]; then
+        warn "Unexpected hangup by rsync. Deleting backup."
         action_remove_bin $new_bin override
     fi
 
