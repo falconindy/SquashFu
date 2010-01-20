@@ -115,6 +115,7 @@ TODO
 ---------------------------------------
 In no particular order....
 
+- Add opt for shortened report that doesn't report sizes
 - Fix output funcs for non-color scenario
 - Add semantic error checking for config
 - Create man page
