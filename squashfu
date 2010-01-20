@@ -278,27 +278,32 @@ action_remove_bin () {
         die "Error writing to ${BINVENTORY}"
     fi
 
-    if [[ -z $2 && $(grep -E "^$1:" ${BINVENTORY}) && -d "${BINS_DIR}/$1" ]]; then
-        echo "Are you SURE you want to remove this bin?"
-        local timestamp=$(sed -n "/$1/s/^[0-9]*://" "${BINVENTORY}")
-        printf "\t%15s %s\n\t%15s %s\n\t%15s %s\n" \
-                "Bin:" "$1" \
-                "Date Created:" "$(date --rfc-3339=seconds --date="1970-01-01 $timestamp sec GMT")" \
-                "Size:" "$(du -sh "${BINS_DIR}/$1" 2>/dev/null | awk '{print $1}')"
+    if [[ $(grep -E "^$1:" ${BINVENTORY}) && -d "${BINS_DIR}/$1" ]]; then
+        if [[ -z $2 ]]; then
+            echo "Are you SURE you want to remove this bin?"
+            local timestamp=$(sed -n "/$1/s/^[0-9]*://" "${BINVENTORY}")
+            printf "\t%15s %s\n\t%15s %s\n\t%15s %s\n" \
+                    "Bin:" "$1" \
+                    "Date Created:" "$(date --rfc-3339=seconds --date="1970-01-01 $timestamp sec GMT")" \
+                    "Size:" "$(du -sh "${BINS_DIR}/$1" 2>/dev/null | awk '{print $1}')"
 
-        read -p "Confirm deletion (y/N)" confirm
-        if [[ $confirm != "y" ]]; then
-            info "Delete operation aborted"
-            exit 1
+            read -p "Confirm deletion (y/N)" confirm
+            if [[ $confirm != "y" ]]; then
+                info "Delete operation aborted"
+                exit 1
+            fi
         fi
+
+        info "Deleting bin $1"
+        sed -i "/^$1:[0-9]*/d" "${BINVENTORY}"
+        rm -rf ${BINS_DIR}/$1
+
+        # tidy up!
+        sweep_bins
+    else
+        die "Bin $1 not found."
     fi
 
-    info "Deleting bin $1"
-    sed -i "/^$1:[0-9]*/d" "${BINVENTORY}"
-    rm -rf ${BINS_DIR}/$1
-
-    # tidy up!
-    sweep_bins
 }
 
 action_rollback () {
