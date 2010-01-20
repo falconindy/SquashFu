@@ -255,11 +255,15 @@ action_backup () {
     debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
     info "Creating new incremental"
     /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
+    rsync_ret=$?
 
-    if [[ $? -gt 0 && $DEL_BIN_ON_FAIL == "true" ]]; then
-        warn "Unexpected hangup by rsync. Deleting backup."
-        action_remove_bin $new_bin override
-    fi
+    # TODO: convert to check for error code in array
+    for $error in ${DEL_BIN_ON_FAIL[@]}; do
+        if [[ $rsync_ret == $error ]]; then
+            warn "Unexpected hangup by rsync ($error). Deleting backup."
+            action_remove_bin $new_bin override
+        fi
+    done
 
     check_for_resquash
     if [[ val=$? -gt 0 ]]; then
