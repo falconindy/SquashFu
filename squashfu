@@ -166,7 +166,7 @@ check_for_resquash () {
     debug "Found $number_of_bins bins"
 
     if [[ $number_of_bins -gt $MAX_BINS ]]; then
-        return $[ $number_of_bins - $MIN_BINS ]
+        return $(( $number_of_bins - $MIN_BINS ))
     else
         return 0
     fi
@@ -175,7 +175,7 @@ check_for_resquash () {
 get_next_available_bin () {
 # Arguments: none
 # Returns: Numeric value of the next unused bin
-    next_bin=$[ $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1) + 1 ]
+    next_bin=$(( $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1) + 1 ))
     debug "Next available bin = $next_bin"
     return $next_bin
 }
@@ -195,7 +195,7 @@ sweep_bins () {
             mv "${BINS_DIR}/$high_bin" "${BINS_DIR}/$count"
             sed -i "/^$high_bin:/s/^$high_bin:/$count:/" "$BINVENTORY"
         fi
-        count=$[ $count + 1 ]
+        count=$(( $count + 1 ))
     done
 }
 
@@ -334,7 +334,7 @@ action_rollback () {
         die "Cannot rollback more than ${#bin_list[@]} backups"
     fi
 
-    local num_to_mount=$[ ${#bin_list[@]} - $1 ]
+    local num_to_mount=$(( ${#bin_list[@]} - $1 ))
 
     mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
     mountpoint "$SQUASH_MOUNT" &>/dev/null || mount_squash
@@ -389,7 +389,7 @@ action_resquash_now () {
     if [[ $number_of_bins -le $MIN_BINS ]]; then
         die "Nothing to do. Current backups do not exceed MIN_BINS value."
     else
-        create_new_squash $[ $number_of_bins - $MIN_BINS ]
+        create_new_squash $(( $number_of_bins - $MIN_BINS ))
     fi
 
     exit $?
