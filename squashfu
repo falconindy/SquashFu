@@ -440,8 +440,6 @@ HELP
     exit 1
 }
 
-[[ -z $1 ]] && ( usage; exit 1; )
-
 while getopts :BCD:QR:Uc: opt; do
     case $opt in
         B)
@@ -467,4 +465,4 @@ while getopts :BCD:QR:Uc: opt; do
     esac >&2
 done
 
-[[ -n $action ]] && action_$action
+[[ -n $action ]] && action_$action || usage
