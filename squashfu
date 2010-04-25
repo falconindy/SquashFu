@@ -328,7 +328,7 @@ action_rollback () {
     fi
 
     # Form a chronologically ordered list of bins, assuming the user didn't give bogus input
-    local bin_list=($(grep -vE "^[ ]*$" "$BINVENTORY" | sort -t: -r -n -k2 | cut -d: -f1))
+    local bin_list=($(grep -vE "^[ \t]*$" "$BINVENTORY" | sort -t: -r -n -k2 | cut -d: -f1))
 
     if [[ $1 -gt ${#bin_list[@]} ]]; then
         die "Cannot rollback more than ${#bin_list[@]} backups"
