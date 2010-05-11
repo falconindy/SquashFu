@@ -128,10 +128,9 @@ unmount_union () {
 # Args: none
 # Returns: return code from umount
     info "Unmounting union"
-    while [[ $(mountpoint "$UNION_MOUNT" | grep "is a mount") ]]; do
-        umount "$UNION_MOUNT" 2>/dev/null
-        sleep 1
-    done
+
+    $(mountpoint -q "$UNION_MOUNT") && umount "$UNION_MOUNT" 2>/dev/null
+
     return $?
 }
 
@@ -139,10 +138,9 @@ unmount_squash () {
 # Args: none
 # Returns: return code from umount
     info "Unmounting squash"
-    while [[ $(mountpoint "$SQUASH_MOUNT" | grep "is a mount") ]]; do
-        umount "$SQUASH_MOUNT" 2>/dev/null
-        sleep 1
-    done
+
+    $(mountpoint -q "$SQUASH_MOUNT") && umount "$SQUASH_MOUNT" 2>/dev/null
+
     return $?
 }
 
@@ -155,8 +153,7 @@ unmount_all () {
     fi
 
     # Union MUST be unmounted first
-    unmount_union
-    unmount_squash
+    unmount_union && unmount_squash || die "Failure during unmounting"
 }
 
 check_for_resquash () {
@@ -230,7 +227,7 @@ action_backup () {
     info "Backup requested at $(date --rfc-3339=seconds)"
 
     # Cleanup union, in case user was doing a rollback and forgot to unmount (or error on last run)
-    mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
+    mountpoint -q "$UNION_MOUNT" && unmount_union
 
     info "Creating new bin"
     # Make a new bin for this incremenetal
@@ -241,7 +238,7 @@ action_backup () {
     # Determine the mount order via binventory
     local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
 
-    mountpoint "${SQUASH_MOUNT}" &>/dev/null || mount_squash
+    mountpoint -q "${SQUASH_MOUNT}" || mount_squash
     mount_union_with_bins ${bin_order[@]}
 
     # Die with error on mount, else start rsync
@@ -336,8 +333,8 @@ action_rollback () {
 
     local num_to_mount=$(( ${#bin_list[@]} - $1 ))
 
-    mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
-    mountpoint "$SQUASH_MOUNT" &>/dev/null || mount_squash
+    mountpoint -q "$UNION_MOUNT" && unmount_union
+    mountpoint -q "$SQUASH_MOUNT" || mount_squash
 
     mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
 
