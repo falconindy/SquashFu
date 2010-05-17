@@ -100,11 +100,6 @@ INSTALL (if you're not on Arch Linux)
 
 KNOWN BUGS
 ------------------------------------
-1/11/2010 (Kernel: 2.6.32.3)
-    Issue: Aufs takes a long time to unmount.
-    Fix:   If using Ext4, mount with the 'nobarrier' option. No resolution known
-           at this time for other FS's.
-
 1/17/2010
     Issue: Paths with special chars or whitespace as includes or excludes are
            not properly handled when passed to rsync.
