@@ -26,3 +26,4 @@ uninstall:
 squashfu.1: README.pod
 	pod2man --section=1 --center=" " --release=" " --name="SQUASHFU" --date="squashfu-${VERSION}" README.pod > squashfu.1
 
+.PHONY: all doc install uninstall
