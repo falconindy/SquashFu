@@ -1,0 +1,154 @@
+=head1 NAME
+
+squashfu - an incremental backup solution
+
+=head1 SYNOPSIS
+
+I<squashfu> <action> [options]
+
+=head1 DESCRIPTION
+
+I<squashfu> is a Bash based backup utility that uses the flexibility of rsync, squashfs, 
+and aufs to create incremental backups and offer limited compression.
+
+=head1 ACTIONS
+
+=over
+
+=item B<-B>
+
+Runs a regular backup, using the config file at /etc/squashfu.
+
+=item B<-C>
+
+Create a new squashed seed by merging old bins. This will leave you with a no more
+than the number of bins specified by the MIN_BINS setting in the config.
+
+=item B<-D> I<BIN>
+
+Delete the incremental backup with the number BIN. This is done interactively and you
+will have a chance to confirm before any files are deleted.
+
+=item B<-Q>
+
+Displays usage statistics, including the size of the compressed seed and each incremental
+backup with its creation date and bin number.
+
+=item B<-R>
+
+Cookies will be persistent and reused for logins. If you specify this option, you must
+also provide a cookie file path with the -C option or in the config file.
+
+=item B<-U>
+
+Unmount the squash and union. Although I<squashfu> will always check and unmount as
+necessary before an operation, this is provided as a convenience.
+
+=back
+
+=head1 OPTIONS
+
+=over
+
+=item B<-c> F<PATH>
+
+Specify an alternate config file as denoted by F<PATH>. The default config will still be
+sourced, but options specified in this config will override the defaults. If your extra
+config overrides the location of the backups, ensure that this config is always passed 
+for any operation.
+
+=back
+
+=head1 HOW IT WORKS
+
+
+Goal: To create a backup solution which provides incremental backups and compression,
+and which also provides an easy way to roll back.
+
+Design:
+
+  A directory structure is created as follows (with some terminology included):
+
+      backup_root/
+       |- seed.sfs  <-- squash, or seed
+       |- ro/       <-- squash mount point
+       |- rw/       <-- union mount point
+       |- .bins/    <-- incrementals
+           |-1/
+           | .....
+           | .....
+           | .....
+           | .....
+           | .....
+           |-n/
+
+      /var/
+       |- lib/
+          |- .squashfu.inv <-- bin inventory list (or binventory)
+
+seed.sfs is created from an initial backup and compressed using SquashFS, which is
+simply a read only filesystem which focuses on compression. It's mounted, using a 
+loopback device, on ro/.
+
+At the time of the backup, the next available bin is determined, created, and logged
+to an inventory sheet with a timestamp. A union is created with all the available bins,
+mounted in reverse chronological order on top of the seed (newest to oldest) on rw/.
+At this point, the union represents the state of your files at the end of the last
+backup. The newest branch is marked as read/write, and rsync is called. Because this
+top branch is the only writable location in the union, the files rsync generates with
+the -u (update) flag are placed into this branch. The backup finishes, and the union
+and seed are unmounted.
+
+At this point, Squashfu ensures compliance with the user's settings of MAX_BINS. If
+the current number of used bins exceeds this value, a new seed is generated. The 
+number of old incrementals merged into the new seed is determined by the difference
+between MAX_BINS and MIN_BINS in the config file. In this way, you always have
+MIN_BINS available to roll back to, but you're not forced to recompress your seed
+at every backup -- an operation that may take a long time depending on how big
+your backup source is.
+
+If and when you want to roll back, execute Squashfu with the -R action, and supply
+the number of bins you want to roll back. The bins are ordered chronologically,
+and the oldest "number_of_bins - bins_to_rollback" are mounted on the union mount
+point.
+
+B<WARNING:>
+You should not, under any circumstances, add or remove files contained in the bins,
+nor should you alter your binventory's time stamps. Doing so many result in your cat
+being set on fire or your backups being destroyed.
+
+=head1 INSTALLATION
+
+~ Ensure that squashfu.conf resides in F</etc/squashfu.conf>
+
+~ Determine your backup_root location.
+
+~ Read over each option in F</etc/squashfu.conf> and set it accordingly.
+
+~ Create your first backup with I<squashfu> B<-B> and validate that the backup was
+created successfully.
+
+~ It may be a wise idea to make more changes, run a new backup and inspect the resulting
+incremental.
+
+=head1 FURTHER READING
+
+L<http://en.wikipedia.org/wiki/Aufs>
+
+L<http://en.wikipedia.org/wiki/UnionFS>
+
+L<http://aufs.sourceforge.net/>
+
+L<http://en.wikipedia.org/wiki/SquashFS>
+
+L<http://en.wikipedia.org/wiki/Rsync>
+
+
+=head1 SEE ALSO
+
+B<aufs>(5), B<rsync>(1)
+
+=head1 AUTHOR
+
+Dave Reisner E<lt>d@falconindy.comE<gt>
+
