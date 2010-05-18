@@ -1,4 +1,4 @@
-VERSION=1.0
+VERSION=$(shell git describe)
 
 all: doc
 doc: squashfu.1
@@ -6,7 +6,7 @@ doc: squashfu.1
 install: all
 	@echo "installing squashfu to ${DESTDIR}/usr/bin"
 	@mkdir -p ${DESTDIR}/usr/bin
-	@cp squashfu ${DESTDIR}/usr/bin
+	@sed "s/VER=.*/VER=${VERSION}/" < squashfu > ${DESTDIR}/usr/bin/squashfu
 	@chmod 755 ${DESTDIR}/usr/bin/squashfu
 	@mkdir -p ${DESTDIR}/etc
 	@cp squashfu.conf ${DESTDIR}/etc
