@@ -17,16 +17,16 @@ and aufs to create incremental backups and offer limited compression.
 
 =item B<-B>
 
-Runs a regular backup, using the config file at /etc/squashfu.
+Runs a regular backup, using the config file at F</etc/squashfu>.
 
 =item B<-C>
 
 Create a new squashed seed by merging old bins. This will leave you with a no more
-than the number of bins specified by the MIN_BINS setting in the config.
+than the number of bins specified by the I<MIN_BINS> setting in the config.
 
 =item B<-D> I<BIN>
 
-Delete the incremental backup with the number BIN. This is done interactively and you
+Delete the incremental backup with the number I<BIN>. This is done interactively and you
 will have a chance to confirm before any files are deleted.
 
 =item B<-Q>
@@ -37,7 +37,7 @@ backup with its creation date and bin number.
 =item B<-R>
 
 Cookies will be persistent and reused for logins. If you specify this option, you must
-also provide a cookie file path with the -C option or in the config file.
+also provide a cookie file path with the B<-C> option or in the config file.
 
 =item B<-U>
 
@@ -86,7 +86,7 @@ Design:
        |- lib/
           |- .squashfu.inv <-- bin inventory list (or binventory)
 
-seed.sfs is created from an initial backup and compressed using SquashFS, which is
+F<seed.sfs> is created from an initial backup and compressed using SquashFS, which is
 simply a read only filesystem which focuses on compression. It's mounted, using a 
 loopback device, on ro/.
 
@@ -119,9 +119,10 @@ being set on fire or your backups being destroyed.
 
 =head1 INSTALLATION
 
-~ Ensure that squashfu.conf resides in F</etc/squashfu.conf>
+~ On Arch Linux, build and install from the AUR.
 
-~ Determine your backup_root location.
+~ On other distributions, use the included Makefile to run B<make install>, ensuring
+that the I<DESTDIR> and I<MANPREFIX> are specified.
 
 ~ Read over each option in F</etc/squashfu.conf> and set it accordingly.
 
