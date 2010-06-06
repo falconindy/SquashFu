@@ -290,19 +290,17 @@ action_rollback () {
 # Returns: none
 
   [[ $UID -ne 0 ]] && die "Must be root to perform a rollback"
-
-  # Validate input with test cases
-  [[ -z $1 ]] && die "The rollback action requires 1 additional argument."
+  [[ ! $1 =~ ^[0-9]*$ ]] && die "Invalid argument. Parameter must be a number."
 
   # Form a chronologically ordered list of bins, assuming the user didn't give bogus input
-  local bin_list=($(grep -vE "^[ \t]*$" "$BINVENTORY" | sort -t: -r -n -k2 | cut -d: -f1))
+  local bin_list=($(sed -n 's/[\t\ ]*\([0-9]*\):.*/\1/p' "$BINVENTORY"))
 
   [[ $1 -gt ${#bin_list[@]} ]] && die "Cannot rollback more than ${#bin_list[@]} backups"
 
   local num_to_mount=$(( ${#bin_list[@]} - $1 ))
 
-  mountpoint "$UNION_MOUNT" &>/dev/null && unmount_union
-  mountpoint "$SQUASH_MOUNT" &>/dev/null || mount_squash
+  mountpoint -q "$UNION_MOUNT" && unmount_union
+  mountpoint -q "$SQUASH_MOUNT" || mount_squash
 
   mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
 
