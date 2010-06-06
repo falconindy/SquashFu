@@ -177,7 +177,7 @@ sweep_bins () {
   # Make sure bins are numbered in order, clean up if not. In other words,
   # if we have 10 bins, make sure they're ordered 1 through 10.
   count=1
-  ls "${BINS_DIR}" | while read bin; do
+  for bin in "${BINS_DIR}"; do
     if [[ ! -d "${BINS_DIR}/$count" ]]; then
       high_bin=$(ls "${BINS_DIR}" | sort -n | tail -1)
       debug "Sweeping bin $high_bin into bin $count"
@@ -242,9 +242,7 @@ action_backup () {
   done
 
   check_for_resquash
-  if [[ val=$? -gt 0 ]]; then
-    create_new_squash $val
-  fi
+  [[ val=$? -gt 0 ]] && create_new_squash $val
 
   # TODO: Report if requested
 
@@ -258,7 +256,7 @@ action_remove_bin () {
   [[ $UID != 0 ]] && die "Must be root to remove a backup"
   [[ ! -w "$BINVENTORY" ]] && die "Unable to write to ${BINVENTORY}"
 
-  if [[ $(grep -E "^$1:" ${BINVENTORY}) && -d "${BINS_DIR}/$1" ]]; then
+  if grep -E "^$1:" ${BINVENTORY} && [[ -d "${BINS_DIR}/$1" ]]; then
     if [[ -z $2 ]]; then
       echo "Are you SURE you want to remove this bin?"
       local timestamp=$(sed -n "/^$1:/s/^[0-9]*:\([0-9]*\)/\1/p" "${BINVENTORY}")
@@ -267,11 +265,10 @@ action_remove_bin () {
           "Date Created:" "$(date --rfc-3339=seconds --date="@$timestamp")" \
           "Size:" "$(du -sh "${BINS_DIR}/$1" 2>/dev/null | awk '{print $1}')"
 
-      read -p "Confirm deletion (y/N)" confirm
-      if [[ $confirm != "y" ]]; then
-        info "Delete operation aborted"
-        exit 1
-      fi
+      echo -ne "\033[1;33m::\033[0m"
+      read -N1 -p "Confirm deletion (y/N) " reply
+      echo
+      [[ ! "$reply" =~ [Yy] ]] && die "Delete operation aborted"
     fi
 
     info "Deleting bin $1"
