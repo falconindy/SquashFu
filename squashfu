@@ -388,7 +388,9 @@ action_restore () {
   mount_union_with_bins ${bin_list[@]:0:$num} || die "Failed to mount union"
 
   # XXX: Move the contents, not the dir (avoid extra subdir)
-  rsync -av "$UNION_MOUNT/$1" "$(basename $1).${snaps[$reply]}"
+  rsync -a "$UNION_MOUNT/$1" "$(basename $1).${snaps[$reply]}"
+
+  info "Your $(stat -c %F "$UNION_MOUNT/$1") has been restored as ${PWD}/$(basename $1).${snaps[$reply]}"
 
   unmount_all
 
