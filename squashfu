@@ -89,7 +89,7 @@ create_new_bin () {
 mount_squash () {
 # Arguments: none
 # Returns: return code of mount command
-  debug "Mounting Squash"
+  info "Mounting squash"
   mount -o loop,ro "$SEED" "$SQUASH_MOUNT"
   return $?
 }
@@ -353,6 +353,47 @@ action_resquash_now () {
   exit $?
 }
 
+action_restore () {
+
+  [[ -z $1 ]] && die "Missing parameter from restore. Provide a full path to the restore target."
+  [[ $UID != 0 ]] && die "Must be root to restore."
+
+  IFS=$'\n' read -r -d $'\0' -a results < <(find $BINS_DIR/*/$(dirname $1)/$(basename $1) -maxdepth 0 2>/dev/null)
+
+  [[ ${#results[@]} -eq 0 ]] && die "Target not found: '$1'"
+
+  declare -a snaps
+
+  info "Found $(basename $1) in the following backups:"
+  for result in "${results[@]}"; do
+    local bin=$(sed -n "s|$BINS_DIR/\([0-9]*\)$1|\1|p" <<< "$result")
+    local bkupdate=$(sed -n "s|^$bin:\([0-9]*\)$|\1|p" $BINVENTORY)
+    snaps[$bin]=$bkupdate
+
+    printf "  %d\t%s\n" $bin "$(date --date="@$bkupdate")"
+  done
+
+  local reply
+  while [[ -z ${snaps[$reply]} ]]; do
+    read -p "Which snapshot to restore from? " reply
+    [[ -z ${snaps[$reply]} ]] && warn "Invalid bin"
+  done
+
+  local bin_list=($(sed -n 's/[\t\ ]*\([0-9]*\):.*/\1/p' "$BINVENTORY"))
+  local num=$(grep -nh "^$reply:" $BINVENTORY | cut -d: -f1)
+
+  mountpoint -q $UNION_MOUNT && unmount_union
+
+  mount_squash || die "Failed to mount seed"
+  mount_union_with_bins ${bin_list[@]:0:$num} || die "Failed to mount union"
+
+  # XXX: Move the contents, not the dir (avoid extra subdir)
+  rsync -av "$UNION_MOUNT/$1" "$(basename $1).${snaps[$reply]}"
+
+  unmount_all
+
+}
+
 action_unmount () {
   unmount_all
 }
@@ -400,7 +441,7 @@ HELP
 
 [[ $# -eq 0 ]] && usage
 
-while getopts :BCD:QR:Uc: opt; do
+while getopts :BG:CD:QR:Uc: opt; do
   case $opt in
     B)
       [[ -n $action ]] && die "only one operation may be used at a time"
@@ -411,6 +452,9 @@ while getopts :BCD:QR:Uc: opt; do
     D)
       [[ -n $action ]] && die "only one operation may be used at a time"
       action="remove_bin $OPTARG" ;;
+    G)
+      [[ -n $action ]] && die "only one operation may be used at a time"
+      action="restore $OPTARG" ;;
     Q)
       [[ -n $action ]] && die "only one operation may be used at a time"
       action=report ;;
