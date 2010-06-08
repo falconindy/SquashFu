@@ -89,8 +89,10 @@ create_new_bin () {
 mount_squash () {
 # Arguments: none
 # Returns: return code of mount command
-  info "Mounting squash"
-  mount -o loop,ro "$SEED" "$SQUASH_MOUNT"
+  mountpoint -q "$SQUASH_MOUNT" || {
+    info "Mounting squash";
+    mount -o loop,ro "$SEED" "$SQUASH_MOUNT";
+  }
   return $?
 }
 
@@ -353,15 +355,20 @@ action_restore () {
   [[ -z $1 ]] && die "Missing parameter from restore. Provide a full path to the restore target."
   [[ $UID != 0 ]] && die "Must be root to restore."
 
-  IFS=$'\n' read -r -d $'\0' -a results < <(find $BINS_DIR/*/$(dirname $1)/$(basename $1) -maxdepth 0 2>/dev/null)
+  mount_squash || die "Failed to mount seed"
 
-  [[ ${#results[@]} -eq 0 ]] && die "Target not found: '$1'"
+  IFS=$'\n' read -r -d $'\0' -a results < <(find $BINS_DIR/*/$(dirname $1)/$(basename $1) -maxdepth 0 2>/dev/null)
+  [[ -e "$SQUASH_MOUNT/$1" ]] && results[0]="$SQUASH_MOUNT/$1"
+
+  [[ ${#results[@]} -eq 0 && ! -e $seedfile ]] && unmount_squash && die "Target not found: '$1'"
   local restore_type=$(stat -c %F ${results[0]})
 
   declare -a snaps
+  [[ -n ${results[0]} ]] && snaps[0]=$(stat -c %Z ${results[0]})
 
   info "Found $(basename $1) in the following backups:"
-  for result in "${results[@]}"; do
+  [[ -n ${results[0]} ]] && printf "  0\t%s\n" "$(date --date=@${snaps[0]})"
+  for result in "${results[@]:1}"; do
     local bin=$(sed -n "s|$BINS_DIR/\([0-9]*\)$1|\1|p" <<< "$result")
     local bkupdate=$(sed -n "s|^$bin:\([0-9]*\)$|\1|p" $BINVENTORY)
     snaps[$bin]=$bkupdate
@@ -369,19 +376,17 @@ action_restore () {
     printf "  %d\t%s\n" $bin "$(date --date="@$bkupdate")"
   done
 
-  local reply
-  while [[ -z ${snaps[$reply]} ]]; do
-    read -p "Which snapshot to restore from? " reply
-    [[ -z ${snaps[$reply]} ]] && warn "Invalid bin"
-  done
+  read -p "Which snapshot to restore from? " reply
+  [[ -z $reply || -z ${snaps[$reply]} ]] && die "Invalid bin"
 
   local bin_list=($(sed -n 's/[\t\ ]*\([0-9]*\):.*/\1/p' "$BINVENTORY"))
   local num=$(grep -nh "^$reply:" $BINVENTORY | cut -d: -f1)
 
   mountpoint -q $UNION_MOUNT && unmount_union
 
-  mount_squash || die "Failed to mount seed"
-  mount_union_with_bins ${bin_list[@]:0:$num} || die "Failed to mount union"
+  [[ $reply != 0 ]] &&
+    { mount_union_with_bins ${bin_list[@]:0:$num} || die "Failed to mount union"; } ||
+    mount_union_with_bins || die "Failed to mount union"
 
   local restore_name="$1.$(date --date=@${snaps[$reply]} +%Y%m%d)"
 
