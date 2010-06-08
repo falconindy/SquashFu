@@ -119,10 +119,8 @@ unmount_union () {
 # Args: none
 # Returns: return code from umount
   info "Unmounting union"
-  while mountpoint -q "$UNION_MOUNT"; do
-   umount "$UNION_MOUNT" 2>/dev/null
-   sleep .5
-  done
+ umount "$UNION_MOUNT" 2>/dev/null
+ sleep .5
   return $?
 }
 
@@ -130,10 +128,7 @@ unmount_squash () {
 # Args: none
 # Returns: return code from umount
   info "Unmounting squash"
-  while mountpoint -q "$SQUASH_MOUNT"; do
-   umount "$SQUASH_MOUNT" 2>/dev/null
-   sleep .5
-  done
+  umount "$SQUASH_MOUNT" 2>/dev/null
   return $?
 }
 
