@@ -356,6 +356,7 @@ action_restore () {
   IFS=$'\n' read -r -d $'\0' -a results < <(find $BINS_DIR/*/$(dirname $1)/$(basename $1) -maxdepth 0 2>/dev/null)
 
   [[ ${#results[@]} -eq 0 ]] && die "Target not found: '$1'"
+  local restore_type=$(stat -c %F ${results[0]})
 
   declare -a snaps
 
@@ -382,10 +383,16 @@ action_restore () {
   mount_squash || die "Failed to mount seed"
   mount_union_with_bins ${bin_list[@]:0:$num} || die "Failed to mount union"
 
-  # XXX: Move the contents, not the dir (avoid extra subdir)
-  rsync -a "$UNION_MOUNT/$1" "$(basename $1).${snaps[$reply]}"
+  local restore_name="$1.$(date --date=@${snaps[$reply]} +%Y%m%d)"
 
-  info "Your $(stat -c %F "$UNION_MOUNT/$1") has been restored as ${PWD}/$(basename $1).${snaps[$reply]}"
+  {
+    if [[ -d "$UNION_MOUNT/$1" ]]; then
+      rsync -a $UNION_MOUNT/$1/* "$restore_name" &&
+      chown $(stat -c %u:%g "$UNION_MOUNT/$1") "$restore_name";
+    else
+      rsync -a "$UNION_MOUNT/$1" "$restore_name";
+    fi
+  } && info "Your ${restore_type##regular } has been restored as ${restore_name}"
 
   unmount_all
 
