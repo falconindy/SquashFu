@@ -29,6 +29,11 @@ than the number of bins specified by the I<MIN_BINS> setting in the config.
 Delete the incremental backup with the number I<BIN>. This is done interactively and you
 will have a chance to confirm before any files are deleted.
 
+=item B<-G> I<path>
+
+Directly restore a file or directory. This is an interactive operation and a list of 
+locations where the target is found will be presented.
+
 =item B<-Q>
 
 Displays usage statistics, including the size of the compressed seed and each incremental
