@@ -61,7 +61,7 @@ create_new_squash () {
   done
 
   # Clean up $binventory
-  sweep_bins
+  #sweep_bins
 }
 
 create_new_bin () {
@@ -161,9 +161,11 @@ check_for_resquash () {
 get_next_available_bin () {
 # Arguments: none
 # Returns: Numeric value of the next unused bin
-  next_bin=$(( $(cut -d: -f1 "$BINVENTORY" | sort -n | tail -1) + 1 ))
-  debug "Next available bin = $next_bin"
-  return $next_bin
+  for (( i=1; i <= MAX_BINS + 1; i++ )); do
+    [[ -d "${BINS_DIR}/$i" || $(grep "^$i:" "$BINVENTORY") ]] && continue;
+    debug "Next available bin = $i"
+    return $i
+  done
 }
 
 sweep_bins () {
@@ -173,15 +175,14 @@ sweep_bins () {
   info "Rotating chickens"
   # Make sure bins are numbered in order, clean up if not. In other words,
   # if we have 10 bins, make sure they're ordered 1 through 10.
-  count=1
-  for bin in "${BINS_DIR}"; do
+  local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
+  for (( count=1; count <= number_of_bins; count++ )); do
     if [[ ! -d "${BINS_DIR}/$count" ]]; then
       high_bin=$(ls "${BINS_DIR}" | sort -n | tail -1)
       debug "Sweeping bin $high_bin into bin $count"
       mv "${BINS_DIR}/$high_bin" "${BINS_DIR}/$count"
       sed -i "/^$high_bin:/s/^$high_bin:/$count:/" "$BINVENTORY"
     fi
-    count=$(( $count + 2 ))
   done
 }
 
@@ -273,7 +274,7 @@ action_remove_bin () {
     rm -rf ${BINS_DIR}/$1
 
     # tidy up!
-    sweep_bins
+    #sweep_bins
   else
    die "Bin $1 not found."
   fi
@@ -309,8 +310,8 @@ action_report () {
   echo
   # Enumerate bins, sort date order, print human readable create date and size
 
-  cd "$BINS_DIR"
-  OLDIFS=$IFS;IFS=${IFS}:
+  pushd "$BINS_DIR"
+  OIFS=$IFS;IFS=${IFS}$':'
   # Collect all data into an array to 'preload' it. Index 0 is the entire
   # folder. The following indicies correspond to the bin number of that index
   printf "%30s\r" "          .: Loading :." >&2
@@ -323,13 +324,15 @@ action_report () {
         "$(date --rfc-3339=seconds --date="@$stamp")" \
         "${DATA[$bin]}"
   done
-  IFS=$OLDIFS
+  IFS=$OIFS
   printf "%10s\t%25s\t%7s\n" "" "Incremental Total" "${DATA[0]}"
 
-  # Print totals (not efficient -- reruns du on things we already ran it on)
+  # Print totals (not efficient -- reruns du, but at least its on disk cache)
   printf "\n%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "$(du -h "${SEED}" | awk '{print $1}')"
   printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" \
       "$(du -csh "$BINS_DIR" "$SEED" 2>/dev/null | awk '/total$/{print $1}')"
+
+  popd
 }
 
 action_resquash_now () {
