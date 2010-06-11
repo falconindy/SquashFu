@@ -145,7 +145,7 @@ unmount_all () {
 check_for_resquash () {
 # Args: none
 # Returns: number of bins needing to be merged
-  local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
+  local number_of_bins=$(grep -v "^[[:space:]]*$" "$BINVENTORY" | wc -l)
   debug "Found $number_of_bins bins"
 
   if [[ $number_of_bins -gt $MAX_BINS ]]; then
@@ -233,7 +233,7 @@ action_remove_bin () {
   [[ $UID != 0 ]] && die "Must be root to remove a backup"
   [[ ! -w "$BINVENTORY" ]] && die "Unable to write to ${BINVENTORY}"
 
-  if grep -E "^$1:" ${BINVENTORY} && [[ -d "${BINS_DIR}/$1" ]]; then
+  if grep "^$1:" ${BINVENTORY} && [[ -d "${BINS_DIR}/$1" ]]; then
     if [[ -z $2 ]]; then
       echo "Are you SURE you want to remove this bin?"
       local timestamp=$(sed -n "/^$1:/s/^[0-9]*:\([0-9]*\)/\1/p" "${BINVENTORY}")
@@ -275,7 +275,7 @@ action_rollback () {
 
   mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
 
-  local rb_timestamp=$(grep -E "^${bin_list[@]:(-$num_to_mount):1}:" "$BINVENTORY" | cut -d: -f2)
+  local rb_timestamp=$(grep "^${bin_list[@]:(-$num_to_mount):1}:" "$BINVENTORY" | cut -d: -f2)
 
   info "You have rolled back to $(date --rfc-3339=seconds --date="@$rb_timestamp")"
   info "Your files can be found at '${UNION_MOUNT}'"
