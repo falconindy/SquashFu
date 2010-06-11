@@ -314,15 +314,18 @@ action_report () {
   OIFS=$IFS;IFS=${IFS}$':'
   # Collect all data into an array to 'preload' it. Index 0 is the entire
   # folder. The following indicies correspond to the bin number of that index
-  printf "%30s\r" "          .: Loading :." >&2
-  IFS=$'\n' read -r -d $'\0' -a data < <(du -sh . * 2>/dev/null | sort -n -k2)
+  printf "%30s\r" ".: Loading :." >&2
+  IFS=$'\n' read -r -d $'\0' -a data < <(du -csh . * 2>/dev/null | sort -n -k2)
   for d in "${data[@]}"; do
-    local bin=$(cut -d' ' -f2 <<< $d)
-    local size=$(cut -d' ' -f1 <<< $d)
-    [[ $bin != '.' ]] && DATA[$bin]=$size || DATA[0]=$size
+    local bin=($(awk '{ print $2,$1 }' <<< $d))
+    case ${bin[0]} in
+      'total') total=${bin[1]}; continue ;;
+      '.') DATA[0]=${bin[1]} ;;
+      *) DATA[${bin[0]}]=${bin[1]} ;;
+    esac
   done
 
-  printf "%30s\r" "                       " >&2
+  printf "%30s\r" "" >&2
 
   printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
   grep -vE "^[\t ]*$" "$BINVENTORY" | sort -r -t: -k2 -n | while read bin stamp; do
@@ -333,10 +336,9 @@ action_report () {
   IFS=$OIFS
   printf "%10s\t%25s\t%7s\n" "" "Incremental Total" "${DATA[0]}"
 
-  # Print totals (not efficient -- reruns du, but at least its on disk cache)
+  # Print totals
   printf "\n%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "$(du -h "${SEED}" | awk '{print $1}')"
-  printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" \
-      "$(du -csh "$BINS_DIR" "$SEED" 2>/dev/null | awk '/total$/{print $1}')"
+  printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" "$total"
 
   popd &>/dev/null
 }
