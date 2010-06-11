@@ -317,11 +317,12 @@ action_report () {
   printf "%30s\r" ".: Loading :." >&2
   IFS=$'\n' read -r -d $'\0' -a data < <(du -csh . * 2>/dev/null | sort -n -k2)
   for d in "${data[@]}"; do
-    local bin=($(awk '{ print $2,$1 }' <<< $d))
-    case ${bin[0]} in
-      'total') total=${bin[1]}; continue ;;
-      '.') DATA[0]=${bin[1]} ;;
-      *) DATA[${bin[0]}]=${bin[1]} ;;
+    local bin=${d#*[[:space:]]}
+    local size=${d%[[:space:]]*}
+    case ${bin} in
+      'total') total=$size; continue ;;
+      '.') DATA[0]=$size ;;
+      *) DATA[${bin}]=$size ;;
     esac
   done
 
