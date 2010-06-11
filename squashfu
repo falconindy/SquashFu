@@ -310,12 +310,18 @@ action_report () {
   echo
   # Enumerate bins, sort date order, print human readable create date and size
 
-  pushd "$BINS_DIR"
+  pushd "$BINS_DIR" &>/dev/null
   OIFS=$IFS;IFS=${IFS}$':'
   # Collect all data into an array to 'preload' it. Index 0 is the entire
   # folder. The following indicies correspond to the bin number of that index
   printf "%30s\r" "          .: Loading :." >&2
-  DATA=($(du -sh . * 2>/dev/null | sort -n -k2 | awk '{print $1}'))
+  IFS=$'\n' read -r -d $'\0' -a data < <(du -sh . * 2>/dev/null | sort -n -k2)
+  for d in "${data[@]}"; do
+    local bin=$(cut -d' ' -f2 <<< $d)
+    local size=$(cut -d' ' -f1 <<< $d)
+    [[ $bin != '.' ]] && DATA[$bin]=$size || DATA[0]=$size
+  done
+
   printf "%30s\r" "                       " >&2
 
   printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
@@ -332,7 +338,7 @@ action_report () {
   printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" \
       "$(du -csh "$BINS_DIR" "$SEED" 2>/dev/null | awk '/total$/{print $1}')"
 
-  popd
+  popd &>/dev/null
 }
 
 action_resquash_now () {
