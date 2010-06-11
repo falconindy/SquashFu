@@ -59,9 +59,6 @@ create_new_squash () {
     rm -rf "${BINS_DIR}/$bin"
     sed -i "/^$bin:/d" "$BINVENTORY"
   done
-
-  # Clean up $binventory
-  #sweep_bins
 }
 
 create_new_bin () {
@@ -168,24 +165,6 @@ get_next_available_bin () {
   done
 }
 
-sweep_bins () {
-# Arguments: none
-# Returns: none
-
-  info "Rotating chickens"
-  # Make sure bins are numbered in order, clean up if not. In other words,
-  # if we have 10 bins, make sure they're ordered 1 through 10.
-  local number_of_bins=$(grep -vE "^[ ]*$" "$BINVENTORY" | wc -l)
-  for (( count=1; count <= number_of_bins; count++ )); do
-    if [[ ! -d "${BINS_DIR}/$count" ]]; then
-      high_bin=$(ls "${BINS_DIR}" | sort -n | tail -1)
-      debug "Sweeping bin $high_bin into bin $count"
-      mv "${BINS_DIR}/$high_bin" "${BINS_DIR}/$count"
-      sed -i "/^$high_bin:/s/^$high_bin:/$count:/" "$BINVENTORY"
-    fi
-  done
-}
-
 action_backup () {
 # Args: options array squashfu was invoked with, shifted 1
 # Returns: none
@@ -272,9 +251,6 @@ action_remove_bin () {
     info "Deleting bin $1"
     sed -i "/^$1:[0-9]*/d" "${BINVENTORY}"
     rm -rf ${BINS_DIR}/$1
-
-    # tidy up!
-    #sweep_bins
   else
    die "Bin $1 not found."
   fi
@@ -310,10 +286,10 @@ action_report () {
   # Enumerate bins, sort date order, print human readable create date and size
 
   pushd "$BINS_DIR" &>/dev/null
+
   # Collect all data into an array to 'preload' it. Index 0 is the entire
   # folder. The following indicies correspond to the bin number of that index
   printf "\n%30s\r" ".: Loading :." >&2
-
   while read size bin; do
     case ${bin} in
       'total') total=$size; continue ;;
@@ -321,7 +297,6 @@ action_report () {
       *) DATA[${bin}]=$size ;;
     esac
   done < <(du -csh . * 2>/dev/null | sort -n -k2)
-
   printf "%30s\r" "" >&2
 
   printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
