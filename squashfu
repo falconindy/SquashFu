@@ -290,29 +290,31 @@ action_report () {
 
   pushd "$BINS_DIR" &>/dev/null
 
+  declare -a DATA
+
   # Collect all data into an array to 'preload' it. Index 0 is the entire
   # folder. The following indicies correspond to the bin number of that index
   printf "\n%30s\r" ".: Loading :." >&2
   while read size bin; do
-    case ${bin} in
-      'total') total=$size; continue ;;
+    case $bin in
       '.') DATA[0]=$size ;;
-      *) DATA[${bin}]=$size ;;
+      *) DATA[bin]=$size ;;
     esac
-  done < <(du -csh . * 2>/dev/null | sort -n -k2)
+  done < <(du -sh . * 2>/dev/null)
   printf "%30s\r" "" >&2
 
   printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
   OIFS=$IFS;IFS=${IFS}$':'
   while read bin stamp; do
-    printf "%10d\t%25s\t%7s\n" "$bin" "$(date --rfc-3339=seconds --date="@$stamp")" "${DATA[$bin]}"
+    printf "%10d\t%25s\t%7s\n" "$bin" "$(date --rfc-3339=seconds --date="@$stamp")" "${DATA[bin]}"
   done < <(grep -v "^[[:space:]]*$" "$BINVENTORY" | sort -nr -t':' -k2)
   IFS=$OIFS
   printf "%10s\t%25s\t%7s\n" "" "Incremental Total" "${DATA[0]}"
 
   # Print totals
+  grand_total=$(du -csh "$SEED" "$BINS_DIR" 2>/dev/null | awk '/total$/{ print $1 }')
   printf "\n%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "$(du -h "${SEED}" | awk '{print $1}')"
-  printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" "$total"
+  printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" "$grand_total"
 
   popd &>/dev/null
 }
