@@ -273,9 +273,12 @@ action_rollback () {
   mountpoint -q "$UNION_MOUNT" && unmount_union
   mountpoint -q "$SQUASH_MOUNT" || mount_squash
 
-  mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
-
-  local rb_timestamp=$(grep "^${bin_list[@]:(-$num_to_mount):1}:" "$BINVENTORY" | cut -d: -f2)
+  if [[ ${#bin_list[@]} -eq $1 ]]; then
+    local rb_timestamp=0 # XXX: What the hell is the timestamp of the seed... ?
+  else
+    mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
+    local rb_timestamp=$(grep "^${bin_list[@]:(-$num_to_mount):1}:" "$BINVENTORY" | cut -d: -f2)
+  fi
 
   info "You have rolled back to $(date --rfc-3339=seconds --date="@$rb_timestamp")"
   info "Your files can be found at '${UNION_MOUNT}'"
@@ -430,13 +433,16 @@ OPTIONS
     the default config. If you specify alternate locations via a supplmenetal config,
     you will need to provide the config for all actions
 
+  -v
+    Show debugging output.
+
 HELP
   exit 1
 }
 
 [[ $# -eq 0 ]] && usage
 
-while getopts :BG:CD:QR:Uc: opt; do
+while getopts :BG:CD:QR:Uc:v opt; do
   case $opt in
     B)
       [[ -n $action ]] && die "only one operation may be used at a time"
@@ -461,6 +467,8 @@ while getopts :BG:CD:QR:Uc: opt; do
       action=unmount ;;
     c)
       [[ -f $OPTARG ]] && source $OPTARG ;;
+    v)
+      DEBUG=true ;;
     \:)
       die "Argument missing from -$OPTARG"
       usage ;;
