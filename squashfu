@@ -56,7 +56,7 @@ create_new_squash () {
   info "Cleaning up inventory"
   # Delete old bins, and remove entry from binventory
   for bin in ${old_bins[@]}; do
-    rm -rf "${BINS_DIR}/$bin"
+    rm -rf "$BINS_DIR/$bin"
     sed -i "/^$bin:/d" "$BINVENTORY"
   done
 }
@@ -67,7 +67,7 @@ create_new_bin () {
 
   debug "Asked to create new bin: $1"
   # Create new directory, fail if it exists (something's wrong)
-  mkdir "${BINS_DIR}/$1"
+  mkdir "$BINS_DIR/$1"
   [[ $? != 0 ]] && return $?
 
   # Update binventory with new bin name and timestamp
@@ -75,7 +75,7 @@ create_new_bin () {
 
   # If write to bin list fails, remove diretory and exit
   if [[ $? -ne 0 ]]; then
-    rmdir "${BINS_DIR}/${1}"
+    rmdir "$BINS_DIR/${1}"
     die "Error writing to '$BINVENTORY'"
   fi
 
@@ -100,10 +100,10 @@ mount_union_with_bins () {
   debug "Requested to mount bins: $*"
 
   # Mount first as rw, shift, and mount the rest ro
-  branches="br=${BINS_DIR}/$1=rw:"; shift
+  local branches="br=${BINS_DIR}/$1=rw:"; shift
   if [[ -n $1 ]]; then
     for bin in $*; do
-      branches="${branches}${BINS_DIR}/$bin=ro:"
+      branches="$branches$BINS_DIR/$bin=ro:"
     done
   fi
   branches="${branches}${SQUASH_MOUNT}=ro"
@@ -118,8 +118,8 @@ unmount_union () {
 # Args: none
 # Returns: return code from umount
   info "Unmounting union"
- umount "$UNION_MOUNT" 2>/dev/null
- sleep .5
+  umount "$UNION_MOUNT" 2>/dev/null
+  sleep .5
   return $?
 }
 
@@ -159,7 +159,7 @@ get_next_available_bin () {
 # Arguments: none
 # Returns: Numeric value of the next unused bin
   for (( i=1; i <= MAX_BINS + 1; i++ )); do
-    [[ -d "${BINS_DIR}/$i" || $(grep "^$i:" "$BINVENTORY") ]] && continue;
+    [[ -d "$BINS_DIR/$i" || $(grep "^$i:" "$BINVENTORY") ]] && continue;
     debug "Next available bin = $i"
     return $i
   done
@@ -179,7 +179,7 @@ action_backup () {
     [[ ! "$reply" =~ [Yy] ]] && die "Your bin inventory and/or seed seem to be missing. Please fix this before continuing."
 
     # If we got here, the user answered yes, so initialize a new structure
-    mkdir -p "$UNION_MOUNT" "$SQUASH_MOUNT" "${BINS_DIR}"
+    mkdir -p "$UNION_MOUNT" "$SQUASH_MOUNT" "$BINS_DIR"
     touch "$BINVENTORY"
     create_new_squash -1
     exit 0
@@ -199,15 +199,12 @@ action_backup () {
   # Determine the mount order via binventory
   local bin_order=($(sort -n -r -t: -k2 "$BINVENTORY" | cut -d: -f1))
 
-  mountpoint -q "${SQUASH_MOUNT}" || mount_squash
+  mountpoint -q "$SQUASH_MOUNT" || mount_squash
   mount_union_with_bins ${bin_order[@]} || return 1
 
-  # Includes are pulled in directly from config
-  EXCLUDES=$(for excl in ${EXCLUDES[@]}; do echo --exclude $excl; done)
-
-  debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT""
+  debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]/#/--exclude } $UNION_MOUNT"
   info "Creating new incremental"
-  /usr/bin/rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]} "$UNION_MOUNT"
+  /usr/bin/rsync "${RSYNC_OPTS[@]}" "${INCLUDES[@]}" "${EXCLUDES[@]/#/--exclude }" "$UNION_MOUNT"
   rsync_ret=$?
 
   for error in ${DEL_BIN_ON_FAIL[@]}; do
@@ -233,14 +230,14 @@ action_remove_bin () {
   [[ $UID != 0 ]] && die "Must be root to remove a backup"
   [[ ! -w "$BINVENTORY" ]] && die "Unable to write to ${BINVENTORY}"
 
-  if grep "^$1:" ${BINVENTORY} && [[ -d "${BINS_DIR}/$1" ]]; then
+  if grep "^$1:" $BINVENTORY && [[ -d "$BINS_DIR/$1" ]]; then
     if [[ -z $2 ]]; then
       echo "Are you SURE you want to remove this bin?"
-      local timestamp=$(sed -n "/^$1:/s/^[0-9]*:\([0-9]*\)/\1/p" "${BINVENTORY}")
+      local timestamp=$(sed -n "/^$1:/s/^[0-9]*:\([0-9]*\)/\1/p" "$BINVENTORY")
       printf "\t%15s %s\n\t%15s %s\n\t%15s %s\n" \
           "Bin:" "$1" \
           "Date Created:" "$(date --rfc-3339=seconds --date="@$timestamp")" \
-          "Size:" "$(du -sh "${BINS_DIR}/$1" 2>/dev/null | awk '{print $1}')"
+          "Size:" "$(du -sh "$BINS_DIR/$1" 2>/dev/null | awk '{print $1}')"
 
       echo -ne "\033[1;33m::\033[0m"
       read -N1 -p "Confirm deletion (y/N) " reply
@@ -249,8 +246,8 @@ action_remove_bin () {
     fi
 
     info "Deleting bin $1"
-    sed -i "/^$1:[0-9]*/d" "${BINVENTORY}"
-    rm -rf ${BINS_DIR}/$1
+    sed -i "/^$1:[0-9]*/d" "$BINVENTORY"
+    rm -rf $BINS_DIR/$1
   else
    die "Bin $1 not found."
   fi
@@ -281,7 +278,7 @@ action_rollback () {
   fi
 
   info "You have rolled back to $(date --rfc-3339=seconds --date="@$rb_timestamp")"
-  info "Your files can be found at '${UNION_MOUNT}'"
+  info "Your files can be found at '$UNION_MOUNT'"
 }
 
 action_report () {
@@ -304,7 +301,7 @@ action_report () {
   printf "%30s\r" "" >&2
 
   printf "%10s\t%25s\t%7s\n" "Bin ID" "Date Created" "Size"
-  OIFS=$IFS;IFS=${IFS}$':'
+  local OIFS=$IFS;IFS=$IFS$':'
   while read bin stamp; do
     printf "%10d\t%25s\t%7s\n" "$bin" "$(date --rfc-3339=seconds --date="@$stamp")" "${DATA[bin]}"
   done < <(grep -v "^[[:space:]]*$" "$BINVENTORY" | sort -nr -t':' -k2)
@@ -312,8 +309,8 @@ action_report () {
   printf "%10s\t%25s\t%7s\n" "" "Incremental Total" "${DATA[0]}"
 
   # Print totals
-  grand_total=$(du -csh "$SEED" "$BINS_DIR" 2>/dev/null | awk '/total$/{ print $1 }')
-  printf "\n%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "$(du -h "${SEED}" | awk '{print $1}')"
+  local grand_total=$(du -csh "$SEED" "$BINS_DIR" 2>/dev/null | awk '/total$/{ print $1 }')
+  printf "\n%10s\t%25s\t%7s\n" "" "$(basename $SEED)" "$(du -h "$SEED" | awk '{print $1}')"
   printf "\n%10s\t%25s\t%7s\n" "" "Grand Total" "$grand_total"
 
   popd &>/dev/null
@@ -384,7 +381,7 @@ action_restore () {
     else
       rsync -a "$UNION_MOUNT/$1" "$restore_name";
     fi
-  } && info "Your ${restore_type##regular } has been restored as ${restore_name}"
+  } && info "Your ${restore_type##regular } has been restored as $restore_name"
 
   unmount_all
 
