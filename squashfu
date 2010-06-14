@@ -205,7 +205,7 @@ action_backup () {
 
   debug "rsync ${RSYNC_OPTS[@]} ${INCLUDES[@]} ${EXCLUDES[@]/#/--exclude } $UNION_MOUNT"
   info "Creating new incremental"
-  /usr/bin/rsync "${RSYNC_OPTS[@]}" "${INCLUDES[@]}" "${EXCLUDES[@]/#/--exclude }" "$UNION_MOUNT"
+  /usr/bin/rsync "${RSYNC_OPTS[@]}" "${INCLUDES[@]}" ${EXCLUDES[@]/#/--exclude } "$UNION_MOUNT"
   rsync_ret=$?
 
   for error in ${DEL_BIN_ON_FAIL[@]}; do
