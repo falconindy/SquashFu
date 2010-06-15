@@ -345,17 +345,20 @@ action_restore () {
   mount_squash || die "Failed to mount seed"
 
   IFS=$'\n' read -r -d $'\0' -a results < <(find $BINS_DIR/*/$(dirname $1)/$(basename $1) -maxdepth 0 2>/dev/null)
-  [[ -e "$SQUASH_MOUNT/$1" ]] && results[0]="$SQUASH_MOUNT/$1"
-
-  [[ ${#results[@]} -eq 0 && ! -e $seedfile ]] && unmount_squash && die "Target not found: '$1'"
-  local restore_type=$(stat -c %F ${results[0]})
 
   declare -a snaps
-  [[ -n ${results[0]} ]] && snaps[0]=$(stat -c %Z ${results[0]})
+  [[ -e "$SQUASH_MOUNT/$1" ]] && snaps[0]=$(stat -c %Z "$SQUASH_MOUNT/$1")
+
+  if [[ -z ${snaps[0]} && ${#results[@]} -eq 0 ]]; then
+    unmount_squash
+    die "Target not found: '$1'"
+  fi
+
+  local restore_type=$(stat -c %F ${results[0]})
 
   info "Found $(basename $1) in the following backups:"
-  [[ -n ${results[0]} ]] && printf "  0\t%s\n" "$(date --date=@${snaps[0]})"
-  for result in "${results[@]:1}"; do
+  [[ -n ${snaps[0]} ]] && printf "  0\t%s\n" "$(date --date=@${snaps[0]})"
+  for result in "${results[@]}"; do
     local bin=$(sed -n "s|$BINS_DIR/\([0-9]*\)$1|\1|p" <<< "$result")
     local bkupdate=$(sed -n "s|^$bin:\([0-9]*\)$|\1|p" $BINVENTORY)
     snaps[$bin]=$bkupdate
