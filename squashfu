@@ -354,8 +354,6 @@ action_restore () {
     die "Target not found: '$1'"
   fi
 
-  local restore_type=$(stat -c %F ${results[0]})
-
   info "Found $(basename $1) in the following backups:"
   [[ -n ${snaps[0]} ]] && printf "  0\t%s\n" "$(date --date=@${snaps[0]})"
   for result in "${results[@]}"; do
@@ -387,7 +385,7 @@ action_restore () {
     else
       rsync -a "$UNION_MOUNT/$1" "$restore_name";
     fi
-  } && info "Your ${restore_type##regular } has been restored as $restore_name"
+  } && info "Your data has been restored as: '$restore_name'"
 
   unmount_all
 
