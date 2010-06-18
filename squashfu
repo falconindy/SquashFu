@@ -174,7 +174,7 @@ action_backup () {
 
   # Does the binventory exist? If not, prompt to make sure this is an initialization
   if [[ ! -f "$BINVENTORY" || ! -f "$SEED" ]]; then
-    echo -ne "\033[1;33m::\033[0m"
+    echo -ne "\033[1;33m::\033[0m "
     read -N1 -p "Looks like this is your first time running SquashFu. Is this correct? [y/N] " reply
     echo
     [[ ! "$reply" =~ [Yy] ]] && die "Your bin inventory and/or seed seem to be missing. Please fix this before continuing."
