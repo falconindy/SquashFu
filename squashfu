@@ -443,8 +443,6 @@ HELP
   exit 1
 }
 
-[[ $# -eq 0 ]] && usage
-
 while getopts :BG:CD:QR:Uc:v opt; do
   case $opt in
     B)
