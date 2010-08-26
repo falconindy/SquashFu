@@ -338,15 +338,13 @@ action_resquash_now () {
 }
 
 action_restore () {
-
   [[ -z $1 ]] && die "Missing parameter from restore. Provide a full path to the restore target."
   [[ $UID != 0 ]] && die "Must be root to restore."
 
   mount_squash || die "Failed to mount seed"
 
-  IFS=$'\n' read -r -d'\0' -a results < <(find "$BINS_DIR"/*/"$1" -maxdepth 0 2>/dev/null)
+  IFS=$'\n' read -r -d'\0' -a result < <(find "$BINS_DIR"/*/"$1" -maxdepth 0 2>/dev/null)
 
-  declare -a snaps
   [[ -e "$SQUASH_MOUNT/$1" ]] && snaps[0]=$(stat -c %Z "$SQUASH_MOUNT/$1")
 
   if [[ -z ${snaps[0]} && ${#results[@]} -eq 0 ]]; then
@@ -354,18 +352,21 @@ action_restore () {
     die "Target not found: '$1'"
   fi
 
+  # print results, ghetto mapping sort against inventory
   info "Found ${1##*/} in the following backups:"
   [[ -n ${snaps[0]} ]] && printf "  0\t%s\n" "$(date --date=@${snaps[0]})"
-  for result in "${results[@]}"; do
-    local bin=$(sed -n "s|$BINS_DIR/\([0-9]*\)$1|\1|p" <<< "$result")
-    local bkupdate=$(sed -n "s|^$bin:\([0-9]*\)$|\1|p" $BINVENTORY)
-    snaps[$bin]=$bkupdate
 
-    printf "  %d\t%s\n" $bin "$(date --date="@$bkupdate")"
+  declare -a snaps
+  IFS=$'\n' read -r -d'\0' -a mapping < "$BINVENTORY"
+  for line in "${mapping[@]}"; do
+    IFS=':' read bin stamp <<< "$line"
+    for res in "${result[@]}"; do
+      [[ $res =~ $BINS_DIR/$bin$1 ]] && printf "  %d\t%s\n" $bin "$(date --date="@$stamp")" 
+    done
   done
 
   read -p "Which snapshot to restore from? " reply
-  [[ -z $reply || -z ${snaps[$reply]} ]] && die "Invalid bin"
+  [[ -z $reply || -z ${snaps[$reply]} || ${reply//[0-9]/} ]] && die "Invalid bin"
 
   local bin_list=($(sed -n 's/[\t\ ]*\([0-9]*\):.*/\1/p' "$BINVENTORY"))
   local num=$(grep -nh "^$reply:" $BINVENTORY | cut -d: -f1)
