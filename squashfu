@@ -361,7 +361,7 @@ action_restore () {
   for line in "${mapping[@]}"; do
     IFS=':' read bin stamp <<< "$line"
     for res in "${result[@]}"; do
-      [[ $res =~ $BINS_DIR/$bin$1 ]] && printf "  %d\t%s\n" $bin "$(date --date="@$stamp")" 
+      [[ $res =~ $BINS_DIR/$bin$1 ]] && { printf "  %d\t%s\n" $bin "$(date --date="@$stamp")"; break }
     done
   done
 
