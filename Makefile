@@ -5,14 +5,11 @@ doc: squashfu.1
 
 install: all
 	@echo "installing squashfu to ${DESTDIR}/usr/bin"
-	@mkdir -p ${DESTDIR}/usr/bin
+	@mkdir -p ${DESTDIR}/usr/bin ${DESTDIR}${MANPREFIX}/man1
 	@sed "s/VER=.*/VER=${VERSION}/" < squashfu > ${DESTDIR}/usr/bin/squashfu
 	@chmod 755 ${DESTDIR}/usr/bin/squashfu
-	@mkdir -p ${DESTDIR}/etc
-	@cp squashfu.conf ${DESTDIR}/etc
-	@chmod 644 ${DESTDIR}/etc/squashfu.conf
+	@install -Dm644 squashfu.conf "${DESTDIR}/etc/squashfu.conf"
 	@echo "installing man page to ${DESTDIR}${MANPREFIX}/man1"
-	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
 	@sed "s/VERSION/${VERSION}/g" < squashfu.1 > ${DESTDIR}${MANPREFIX}/man1/squashfu.1
 	@chmod 644 ${DESTDIR}${MANPREFIX}/man1/squashfu.1
 
