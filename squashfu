@@ -276,7 +276,8 @@ action_rollback () {
   if [[ ${#bin_list[@]} -eq $1 ]]; then
     local rb_timestamp=0 # XXX: What the hell is the timestamp of the seed... ?
   else
-    mount_union_with_bins ${bin_list[@]:(-$num_to_mount)}
+    # voodoo magic: reverse bin_list and print off the top (#bin_list - $1) bins
+    mount_union_with_bins $(for (( i = ${#bin_list[@]} - $1 - 1; i >= 0; i-- )); do echo ${bin_list[i]}; done)
     local rb_timestamp=$(grep "^${bin_list[@]:(-$num_to_mount):1}:" "$BINVENTORY" | cut -d: -f2)
   fi
 
