@@ -42,6 +42,7 @@ create_new_squash () {
   # Determine oldest $1 bins and mount them with the current squash
   local old_bins=($(sort -n -r -t: -k2 "$BINVENTORY" | tail -$1 | cut -d: -f1))
 
+  mountpoint -q "$SQUASH_MOUNT" || mount_squash
   mount_union_with_bins ${old_bins[@]}
 
   info "Merging old incrementals"
