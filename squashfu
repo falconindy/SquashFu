@@ -279,7 +279,7 @@ action_rollback () {
   else
     # voodoo magic: reverse bin_list and print off the top (#bin_list - $1) bins
     mount_union_with_bins $(for (( i = ${#bin_list[@]} - $1 - 1; i >= 0; i-- )); do echo ${bin_list[i]}; done)
-    local rb_timestamp=$(grep "^${bin_list[@]:(-$num_to_mount):1}:" "$BINVENTORY" | cut -d: -f2)
+    local rb_timestamp=$(grep "^${bin_list[@]:(-$1-1):1}:" "$BINVENTORY" | cut -d: -f2)
   fi
 
   info "You have rolled back to $(date --rfc-3339=seconds --date="@$rb_timestamp")"
