@@ -193,7 +193,7 @@ action_backup () {
   mountpoint -q "$UNION_MOUNT" && unmount_union
 
   info "Creating new bin"
-  # Make a new bin for this incremenetal
+  # Make a new bin for this incremental
   get_next_available_bin
   local new_bin=$?
   create_new_bin $new_bin
