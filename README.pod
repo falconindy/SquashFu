@@ -39,10 +39,9 @@ locations where the target is found will be presented.
 Displays usage statistics, including the size of the compressed seed and each incremental
 backup with its creation date and bin number.
 
-=item B<-R>
+=item B<-R> <number of bins>
 
-Cookies will be persistent and reused for logins. If you specify this option, you must
-also provide a cookie file path with the B<-C> option or in the config file.
+Rollback specified number of backups and mount union for browsing. The rolled back data will be mounted at $UNION_MOUNT.
 
 =item B<-U>
 
