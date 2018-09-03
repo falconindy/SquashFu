@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 VER="1.0"
 
 CONFIG="/etc/squashfu.conf"
@@ -29,6 +29,12 @@ create_new_squash () {
   # If making first seed, create it directly from source
   if [[ $1 -eq -1 ]]; then
     info "Creating seed from sources (this may take a while)"
+    if [ ! -d "${INCLUDES[@]}" ]
+    then
+      info "The 'INCLUDES' ${INCLUDES[@]} directory doesn't exist."
+      info "Make sure the directory exists and is writeable by the user"
+      die  "Cannot recover from missing source directory"
+    fi
     if [ -z "${EXCLUDES[@]}" ]
     then 
       mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 >/dev/null
@@ -189,7 +195,7 @@ action_backup () {
     mkdir -p "$UNION_MOUNT" "$SQUASH_MOUNT" "$BINS_DIR"
     touch "$BINVENTORY"
     create_new_squash -1
-    exit 0
+    #exit 0
   fi
 
   info "Backup requested at $(date --rfc-3339=seconds)"
