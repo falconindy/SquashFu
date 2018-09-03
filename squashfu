@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 VER="1.0"
 
 CONFIG="/etc/squashfu.conf"
@@ -29,7 +29,12 @@ create_new_squash () {
   # If making first seed, create it directly from source
   if [[ $1 -eq -1 ]]; then
     info "Creating seed from sources (this may take a while)"
-    mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 -e "${EXCLUDES[@]}" >/dev/null
+    if [ -z "${EXCLUDES[@]}" ]
+    then 
+      mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 >/dev/null
+    else
+      mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 -e "${EXCLUDES[@]}" >/dev/null
+    fi
     if [[ $? -eq 0 ]]; then
       mount_squash
       info "Seed creation finished. It has been mounted at "$SQUASH_MOUNT" if you would like to make sure the proper files are included"
@@ -291,6 +296,12 @@ action_report () {
   # Enumerate bins, sort date order, print human readable create date and size
 
   pushd "$BINS_DIR" &>/dev/null
+ 
+  if [ ! -f "$BINVENTORY" ]
+  then 
+    info "No inventory file found at $BINVENTORY."
+    die "Statistics cannot be generated."
+  fi
 
   declare -a DATA
 
