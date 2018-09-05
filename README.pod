@@ -61,6 +61,10 @@ sourced, but options specified in this config will override the defaults. If you
 config overrides the location of the backups, ensure that this config is always passed 
 for any operation.
 
+=item B<-h> 
+
+Execute pre and post hooks during operations
+
 =back
 
 =head1 HOW IT WORKS
