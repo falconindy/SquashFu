@@ -63,7 +63,8 @@ for any operation.
 
 =item B<-h> 
 
-Execute pre and post hooks during operations
+Execute pre and post hooks during operations.
+If this is a standard operation, it can be set in the configuration file via `HOOKS=true`
 
 =back
 
