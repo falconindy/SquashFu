@@ -143,6 +143,8 @@ incremental.
 
 =head1 FURTHER READING
 
+L<https://circl.lu/pub/tr-55/>
+
 L<http://en.wikipedia.org/wiki/Aufs>
 
 L<http://en.wikipedia.org/wiki/UnionFS>
