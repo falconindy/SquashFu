@@ -1,6 +1,6 @@
 =head1 NAME
 
-squashfu - an incremental backup solution
+squashfu - an incremental backup solution (updated version for CIRCL TR-55)
 
 =head1 SYNOPSIS
 
@@ -164,3 +164,6 @@ B<aufs>(5), B<rsync>(1)
 
 Dave Reisner E<lt>d@falconindy.comE<gt>
 
+=head1 CONTRIBUTOR
+
+Sascha Rommelfangen  E<lt>sascha.rommelfangen@circl.luE<gt>
