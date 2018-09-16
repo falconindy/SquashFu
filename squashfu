@@ -22,6 +22,29 @@ die () {
   exit 1
 }
 
+execute_hooks () {
+  if [ "$HOOKS" == "true" ]
+  then
+    if [ $1 == "pre" ]
+    then
+      info "Executing pre-hooks"
+      for cmd in "${PREHOOKS[@]}"
+      do 
+        $cmd
+      done
+    elif [ $1 == "post" ]
+    then
+      info "Executing post-hooks"
+      for cmd in "${POSTHOOKS[@]}"
+      do
+        $cmd
+      done
+    else
+      warn "Hooks called with wrong parameter"
+    fi
+  fi
+}
+
 create_new_squash () {
 # Args: number of bins to be squashed, -1 on initial creation
 # Returns: 0 on success, non-zero on failure
@@ -29,7 +52,18 @@ create_new_squash () {
   # If making first seed, create it directly from source
   if [[ $1 -eq -1 ]]; then
     info "Creating seed from sources (this may take a while)"
-    mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 -e "${EXCLUDES[@]}" >/dev/null
+    if [ ! -d "${INCLUDES[@]}" ]
+    then
+      info "The 'INCLUDES' ${INCLUDES[@]} directory doesn't exist."
+      info "Make sure the directory exists and is writeable by the user"
+      die  "Cannot recover from missing source directory"
+    fi
+    if [ -z "${EXCLUDES[@]}" ]
+    then 
+      mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 >/dev/null
+    else
+      mksquashfs "${INCLUDES[@]}" "$SEED" -b 65536 -e "${EXCLUDES[@]}" >/dev/null
+    fi
     if [[ $? -eq 0 ]]; then
       mount_squash
       info "Seed creation finished. It has been mounted at "$SQUASH_MOUNT" if you would like to make sure the proper files are included"
@@ -74,7 +108,7 @@ create_new_bin () {
   # Update binventory with new bin name and timestamp
   echo "${1}:$(date +%s)" >> "$BINVENTORY"
 
-  # If write to bin list fails, remove diretory and exit
+  # If write to bin list fails, remove directory and exit
   if [[ $? -ne 0 ]]; then
     rmdir "$BINS_DIR/${1}"
     die "Error writing to '$BINVENTORY'"
@@ -120,9 +154,8 @@ unmount_union () {
 # Returns: return code from umount
   info "Unmounting union"
   umount "$UNION_MOUNT" 2>/dev/null
-  local ret=$?
   sleep .5
-  return $ret
+  return $?
 }
 
 unmount_squash () {
@@ -184,16 +217,16 @@ action_backup () {
     mkdir -p "$UNION_MOUNT" "$SQUASH_MOUNT" "$BINS_DIR"
     touch "$BINVENTORY"
     create_new_squash -1
-    exit 0
+    #exit 0
   fi
 
   info "Backup requested at $(date --rfc-3339=seconds)"
-
+  execute_hooks pre
   # Cleanup union, in case user was doing a rollback and forgot to unmount (or error on last run)
   mountpoint -q "$UNION_MOUNT" && unmount_union
 
   info "Creating new bin"
-  # Make a new bin for this incremenetal
+  # Make a new bin for this incremental
   get_next_available_bin
   local new_bin=$?
   create_new_bin $new_bin
@@ -223,7 +256,7 @@ action_backup () {
   # TODO: Report if requested
 
   unmount_all
-
+  execute_hooks post
   info "Backup completed at $(date --rfc-3339=seconds)"
 }
 
@@ -247,7 +280,7 @@ action_remove_bin () {
       echo
       [[ ! "$reply" = [Yy] ]] && die "Delete operation aborted"
     fi
-
+    execute_hooks pre
     mountpoint -q "$UNION_MOUNT" && { unmount_union || die "Failed to unmount union"; }
     info "Deleting bin $1"
     sed -i "/^$1:[0-9]*/d" "$BINVENTORY"
@@ -255,6 +288,7 @@ action_remove_bin () {
   else
    die "Bin $1 not found."
   fi
+  execute_hooks post
 }
 
 action_rollback () {
@@ -270,7 +304,7 @@ action_rollback () {
   [[ $1 -gt ${#bin_list[@]} ]] && die "Cannot rollback more than ${#bin_list[@]} backups"
 
   local num_to_mount=$(( ${#bin_list[@]} - $1 ))
-
+  execute_hooks pre
   mountpoint -q "$UNION_MOUNT" && unmount_union
   mountpoint -q "$SQUASH_MOUNT" || mount_squash
 
@@ -279,9 +313,9 @@ action_rollback () {
   else
     # voodoo magic: reverse bin_list and print off the top (#bin_list - $1) bins
     mount_union_with_bins $(for (( i = ${#bin_list[@]} - $1 - 1; i >= 0; i-- )); do echo ${bin_list[i]}; done)
-    local rb_timestamp=$(grep "^${bin_list[@]:(-$num_to_mount):1}:" "$BINVENTORY" | cut -d: -f2)
+    local rb_timestamp=$(grep "^${bin_list[@]:(-$1-1):1}:" "$BINVENTORY" | cut -d: -f2)
   fi
-
+  execute_hooks post
   info "You have rolled back to $(date --rfc-3339=seconds --date="@$rb_timestamp")"
   info "Your files can be found at '$UNION_MOUNT'"
 }
@@ -291,11 +325,17 @@ action_report () {
   # Enumerate bins, sort date order, print human readable create date and size
 
   pushd "$BINS_DIR" &>/dev/null
+ 
+  if [ ! -f "$BINVENTORY" ]
+  then 
+    info "No inventory file found at $BINVENTORY."
+    die "Statistics cannot be generated."
+  fi
 
   declare -a DATA
 
   # Collect all data into an array to 'preload' it. Index 0 is the entire
-  # folder. The following indicies correspond to the bin number of that index
+  # folder. The following indices correspond to the bin number of that index
   printf "\n%30s\r" ".: Loading :." >&2
   while read size bin; do
     case $bin in
@@ -333,7 +373,9 @@ action_resquash_now () {
   if [[ $number_of_bins -le $MIN_BINS ]]; then
     die "Nothing to do. Current backups do not exceed MIN_BINS value."
   else
+    execute_hooks pre
     create_new_squash $(( $number_of_bins - $MIN_BINS ))
+    execute_hooks post
   fi
 
   exit $?
@@ -342,7 +384,7 @@ action_resquash_now () {
 action_restore () {
   [[ -z $1 ]] && die "Missing parameter from restore. Provide a full path to the restore target."
   [[ $UID != 0 ]] && die "Must be root to restore."
-
+  execute_hooks pre
   mount_squash || die "Failed to mount seed"
 
   IFS=$'\n' read -r -d'\0' -a result < <(find "$BINS_DIR"/*/"$1" -maxdepth 0 2>/dev/null)
@@ -391,11 +433,13 @@ action_restore () {
   } && info "Your data has been restored as: '$restore_name'"
 
   unmount_all
-
+  execute_hooks post
 }
 
 action_unmount () {
+  execute_hooks pre
   unmount_all
+  execute_hooks post
 }
 
 usage () {
@@ -439,6 +483,9 @@ OPTIONS
     the default config. If you specify alternate locations via a supplmenetal config,
     you will need to provide the config for all actions
 
+  -h
+    Execute pre and post hooks during operations 
+
   -v
     Show debugging output.
 
@@ -446,7 +493,7 @@ HELP
   exit 1
 }
 
-while getopts :BG:CD:QR:Uc:v opt; do
+while getopts :BG:CD:QR:Uc:hv opt; do
   case $opt in
     B)
       [[ -n $action ]] && die "only one operation may be used at a time"
@@ -473,6 +520,8 @@ while getopts :BG:CD:QR:Uc:v opt; do
       [[ -f $OPTARG ]] && source $OPTARG ;;
     v)
       DEBUG=true ;;
+    h)
+      HOOKS=true;;
     \:)
       die "Argument missing from -$OPTARG"
       usage ;;

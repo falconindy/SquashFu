@@ -1,6 +1,6 @@
 =head1 NAME
 
-squashfu - an incremental backup solution
+squashfu - an incremental backup solution (updated version for CIRCL TR-55)
 
 =head1 SYNOPSIS
 
@@ -39,10 +39,9 @@ locations where the target is found will be presented.
 Displays usage statistics, including the size of the compressed seed and each incremental
 backup with its creation date and bin number.
 
-=item B<-R>
+=item B<-R> <number of bins>
 
-Cookies will be persistent and reused for logins. If you specify this option, you must
-also provide a cookie file path with the B<-C> option or in the config file.
+Rollback specified number of backups and mount union for browsing. The rolled back data will be mounted at $UNION_MOUNT.
 
 =item B<-U>
 
@@ -61,6 +60,11 @@ Specify an alternate config file as denoted by F<PATH>. The default config will 
 sourced, but options specified in this config will override the defaults. If your extra
 config overrides the location of the backups, ensure that this config is always passed 
 for any operation.
+
+=item B<-h> 
+
+Execute pre and post hooks during operations.
+If this is a standard operation, it can be set in the configuration file via `HOOKS=true`
 
 =back
 
@@ -139,6 +143,8 @@ incremental.
 
 =head1 FURTHER READING
 
+L<https://circl.lu/pub/tr-55/>
+
 L<http://en.wikipedia.org/wiki/Aufs>
 
 L<http://en.wikipedia.org/wiki/UnionFS>
@@ -158,3 +164,6 @@ B<aufs>(5), B<rsync>(1)
 
 Dave Reisner E<lt>d@falconindy.comE<gt>
 
+=head1 CONTRIBUTOR
+
+Sascha Rommelfangen  E<lt>sascha.rommelfangen@circl.luE<gt>
